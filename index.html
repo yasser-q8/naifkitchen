@@ -4,7 +4,7 @@
 <meta property="og:title" content="طلبيات مطبخ شركة نايف">
 <meta property="og:image" content="https://i.postimg.cc/SKbR6TJh/YBM.png">
 <meta property="og:url" content="https://yasser-q8.github.io/naifkitchen/">
-	<meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام طلبيات نايف للأغذية</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -532,7 +532,7 @@
             
             .print-company-info {
                 display: flex !important;
-                align-items: center !important;
+                                align-items: center !important;
                 gap: 15px !important; /* مسافة بين الشعار والاسم */
             }
             
@@ -2116,8 +2116,8 @@
                     <td>${item.code}</td>
                     <td>${item.name}</td>
                     <td>${item.uom}</td>
-                    <td>${item.totalQuantity.toFixed(2)}</td>
-                    <td>${item.totalPack.toFixed(2)}</td>
+                    <td>${formatNumberWithoutDecimals(item.totalQuantity)}</td>
+                    <td>${formatNumberWithoutDecimals(item.totalPack)}</td>
                     <td>${item.restaurants.size}</td>
                 `;
                 tableBody.appendChild(row);
@@ -2127,11 +2127,31 @@
             updateTotalsSummary(totalItems, totalQuantitySum, totalPackSum);
         }
         
+        // دالة لتنسيق الأرقام بدون أصفار عشرية زائدة
+        function formatNumberWithoutDecimals(number) {
+            if (number === 0) return "0";
+            
+            // إذا كان الرقم يحتوي على .00 فقط، نزيل الأصفار
+            if (number % 1 === 0) {
+                return number.toFixed(0);
+            }
+            
+            // إذا كان يحتوي على أرقام عشرية غير صفرية، نحتفظ بها
+            const fixed = number.toFixed(2);
+            if (fixed.endsWith('.00')) {
+                return fixed.replace('.00', '');
+            } else if (fixed.endsWith('0')) {
+                return fixed.replace(/0$/, '');
+            }
+            
+            return fixed;
+        }
+        
         // تحديث إجماليات الملخص
         function updateTotalsSummary(itemsCount, quantitySum, packSum) {
             document.getElementById('totalItemsCount').textContent = itemsCount;
-            document.getElementById('totalQuantitySum').textContent = quantitySum.toFixed(2);
-            document.getElementById('totalPackSum').textContent = packSum.toFixed(2);
+            document.getElementById('totalQuantitySum').textContent = formatNumberWithoutDecimals(quantitySum);
+            document.getElementById('totalPackSum').textContent = formatNumberWithoutDecimals(packSum);
         }
         
         // طباعة إجماليات الأصناف
@@ -2307,7 +2327,7 @@
                                 background-color: #f0f0f0;
                                 border-radius: 4px;
                                 font-weight: bold;
-                                font-size: 18px;
+                                font-size: 22px;
                                 border: 1px solid #ddd;
                             }
                             
@@ -2323,8 +2343,8 @@
                             }
                             
                             .summary-value {
-                            font-size: 18px !important;
-	     color: #FF6E00;
+                                font-size: 22px !important;
+                                color: #FF6E00;
                                 font-weight: bold;
                             }
                             
@@ -2398,22 +2418,21 @@
                                 font-size: 9px;
                             }
                             
-                            /* إجماليات في صف واحد */
+                            /* صف الإجماليات - تم التعديل هنا: تكبير الأرقام */
                             .totals-row {
                                 display: flex;
                                 justify-content: space-between;
                                 align-items: center;
                                 margin-top: 10px;
-                                padding: 6px 10px;
+                                padding: 8px 15px;
                                 background-color: #f5f5f5;
                                 border-radius: 4px;
                                 font-weight: bold;
-                                font-size: 11px;
                                 border: 1px solid #ddd;
                             }
                             
                             .total-item {
-                                margin: 0 8px;
+                                margin: 0 15px !important;
                                 display: flex;
                                 align-items: center;
                             }
@@ -2421,11 +2440,13 @@
                             .total-label {
                                 margin-left: 5px;
                                 color: #666;
+                                font-size: 14px;
                             }
                             
                             .total-value {
                                 color: #FF6E00;
                                 font-weight: bold;
+                                font-size: 20px !important; /* تكبير الأرقام في الصف الأخير */
                             }
                             
                             /* إزالة الهوامش الزائدة */
@@ -2476,11 +2497,11 @@
                         </div>
                         <div class="summary-item">
                             <span class="summary-label">إجمالي الكمية:</span>
-                            <span class="summary-value">${totalQuantitySum.toFixed(2)}</span>
+                            <span class="summary-value">${formatNumberWithoutDecimals(totalQuantitySum)}</span>
                         </div>
                         <div class="summary-item">
                             <span class="summary-label">إجمالي الشامل:</span>
-                            <span class="summary-value">${totalPackSum.toFixed(2)}</span>
+                            <span class="summary-value">${formatNumberWithoutDecimals(totalPackSum)}</span>
                         </div>
                     </div>
                     
@@ -2507,8 +2528,8 @@
                         <td>${item.code}</td>
                         <td>${item.name}</td>
                         <td>${item.uom}</td>
-                        <td>${item.totalQuantity.toFixed(2)}</td>
-                        <td>${item.totalPack.toFixed(2)}</td>
+                        <td>${formatNumberWithoutDecimals(item.totalQuantity)}</td>
+                        <td>${formatNumberWithoutDecimals(item.totalPack)}</td>
                         <td>${item.restaurants.size}</td>
                     </tr>
                 `);
@@ -2518,7 +2539,7 @@
                         </tbody>
                     </table>
                     
-                    <!-- صف الإجماليات -->
+                    <!-- صف الإجماليات مع تكبير الأرقام -->
                     <div class="totals-row">
                         <div class="total-item">
                             <span class="total-label">عدد الأصناف:</span>
@@ -2526,11 +2547,11 @@
                         </div>
                         <div class="total-item">
                             <span class="total-label">إجمالي الكمية:</span>
-                            <span class="total-value">${totalQuantitySum.toFixed(2)}</span>
+                            <span class="total-value">${formatNumberWithoutDecimals(totalQuantitySum)}</span>
                         </div>
                         <div class="total-item">
                             <span class="total-label">إجمالي الشامل:</span>
-                            <span class="total-value">${totalPackSum.toFixed(2)}</span>
+                            <span class="total-value">${formatNumberWithoutDecimals(totalPackSum)}</span>
                         </div>
                         <div class="total-item">
                             <span class="total-label">عدد المطاعم:</span>
@@ -2898,7 +2919,7 @@ font-size: 14px; /* حجم خط أكبر */
                             }
                             
                             .total-value {
-	font-size: 16px !important; /* تكبير للأرقام */
+                                font-size: 16px !important; /* تكبير للأرقام */
                                 color: #FF6E00;
                                 font-weight: bold;
                             }
@@ -2967,7 +2988,7 @@ font-size: 14px; /* حجم خط أكبر */
                         <td>${order.productName}</td>
                         <td>${order.uom}</td>
                         <td>${order.quantity}</td>
-                        <td>${order.totalPack.toFixed(2)}</td>
+                        <td>${formatNumberWithoutDecimals(order.totalPack)}</td>
                         <td>-</td>
                     </tr>
                 `);
@@ -2989,7 +3010,7 @@ font-size: 14px; /* حجم خط أكبر */
                         </div>
                         <div class="total-item">
                             <span class="total-label">إجمالي الشامل:</span>
-                            <span class="total-value">${totalPack.toFixed(2)}</span>
+                            <span class="total-value">${formatNumberWithoutDecimals(totalPack)}</span>
                         </div>
                     </div>
                     
