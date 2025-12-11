@@ -1,0 +1,3210 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام طلبيات نايف للأغذية</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-orange: #FF6E00;
+            --primary-green: #80EF80;
+            --light-blue: #E6F7FF;
+            --accent-blue: #2196F3;
+            --text-dark: #333;
+            --text-light: #666;
+            --white: #FFFFFF;
+            --row-even: #E8F4FF; /* لون أغمق للصفوف الزوجية */
+            --row-odd: #FFFFFF;  /* أبيض للصفوف الفردية */
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-blue);
+            color: var(--text-dark);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1250px;
+            margin: 0 auto;
+            background-color: var(--white);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        /* Header Styles */
+        .header {
+             background: linear-gradient(90deg, var(--primary-orange) 89%, var(--primary-green) 11%);
+            padding: 25px 40px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 5px solid var(--accent-blue);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logo {
+            height: 80px;
+            width: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .company-info h1 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .company-info p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .date-display {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            background-color: #f0f0f0;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tab {
+            padding: 18px 35px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+            border-right: 1px solid #ddd;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .tab:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .tab.active {
+            background-color: var(--white);
+            color: var(--primary-orange);
+            border-bottom: 4px solid var(--primary-green);
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Common Section Styles */
+        .section-title {
+            color: var(--primary-orange);
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--primary-green);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title i {
+            color: var(--accent-blue);
+        }
+        
+        .card {
+            background-color: var(--white);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e0e0e0;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-orange), #FF8C42);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #E55A00, var(--primary-orange));
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 110, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #0d8bf2;
+            transform: translateY(-3px);
+        }
+        
+        .btn-green {
+            background-color: var(--primary-green);
+            color: var(--text-dark);
+        }
+        
+        .btn-green:hover {
+            background-color: #6fe06f;
+            transform: translateY(-3px);
+        }
+        
+        .file-input-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .file-input-label {
+            background-color: var(--accent-blue);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .file-input-label:hover {
+            background-color: #0d8bf2;
+            transform: translateY(-3px);
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Data Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .data-table th {
+            background: var(--accent-blue);
+            color: white;
+            padding: 16px 12px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .data-table td {
+            padding: 5px 12px;
+            text-align: right;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .data-table tr:nth-child(even) {
+            background-color: var(--row-even);
+        }
+        
+        .data-table tr:nth-child(odd) {
+            background-color: var(--row-odd);
+        }
+        
+        .data-table tr:hover {
+            background-color: rgba(255, 110, 0, 0.05);
+        }
+        
+        /* Search Box */
+        .search-container {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 16px 20px;
+            padding-right: 60px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary-orange);
+            box-shadow: 0 0 0 3px rgba(255, 110, 0, 0.2);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-orange);
+            font-size: 1.3rem;
+        }
+        
+        /* Order Cards */
+        .orders-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 أعمدة ثابتة */
+    gap: 25px;
+    margin-top: 30px;
+}
+
+@media (max-width: 1200px) {
+    .orders-container {
+        grid-template-columns: repeat(2, 1fr); /* عمودين للشاشات المتوسطة */
+    }
+}
+
+@media (max-width: 768px) {
+    .orders-container {
+        grid-template-columns: 1fr; /* عمود واحد للشاشات الصغيرة */
+    }
+}
+
+
+
+        
+        .order-card {
+            background-color: var(--white);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .order-card:hover {
+            border-color: var(--primary-orange);
+            transform: translateY(-5px);
+        }
+        
+        .order-header {
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-green));
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .order-header h3 {
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+        }
+        
+        .order-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .order-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .order-table th {
+            background-color: var(--accent-blue);
+            color: white;
+            padding: 10px 10px;
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .order-table td {
+            padding: 5px;
+            text-align: right;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .order-table tr:nth-child(even) {
+            background-color: #daf3ff; /* لون متناوب للعرض */
+        }
+        
+        .order-table tr:nth-child(odd) {
+            background-color: white;
+        }
+        
+        .no-items {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-light);
+            font-style: italic;
+        }
+        
+        /* طباعة طلبية واحدة */
+        .single-order-print {
+            display: none;
+        }
+        
+        .single-order-print.active {
+            display: block;
+        }
+        
+        /* Print Styles - التعديلات الجديدة */
+        @media print {
+            @page {
+                margin: 1mm !important; /* هامش 1مم فقط */
+            }
+            
+            body * {
+                visibility: hidden;
+            }
+            
+            .print-section, .print-section * {
+                visibility: visible;
+            }
+            
+            .print-section {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .order-card {
+                break-inside: avoid !important;
+                margin-bottom: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                transform: scale(0.95) !important;
+                transform-origin: center center !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                page-break-inside: avoid !important;
+            }
+            
+            .order-table {
+                width: 95% !important;
+                margin: 0 auto !important;
+                font-size: 11px !important;
+                border-collapse: collapse !important;
+            }
+            
+            .order-table th {
+                font-size: 10px !important;
+                padding: 4px 3px !important;
+                height: 22px !important;
+            }
+            
+            .order-table td {
+                font-size: 10px !important;
+                padding: 3px 3px !important;
+                height: 18px !important;
+                line-height: 1.1 !important;
+            }
+            
+            /* تصغير عرض كود الصنف أكثر */
+            .order-table td:nth-child(1),
+            .order-table th:nth-child(1) {
+                width: 8% !important;
+                max-width: 60px !important;
+                font-size: 9px !important;
+            }
+            
+            /* تكبير عرض اسم الصنف أكثر */
+            .order-table td:nth-child(2),
+            .order-table th:nth-child(2) {
+                width: 40% !important;
+                min-width: 180px !important;
+            }
+            
+            /* ألوان متناوبة للطباعة - نفس ألوان العرض */
+            .order-table tr:nth-child(even) {
+                background-color: #daf3ff !important; /* نفس اللون المستخدم في العرض */
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            
+            .order-table tr:nth-child(odd) {
+                background-color: white !important;
+            }
+            
+            /* تصميم العنوان الجديد - صف واحد */
+            .print-header-row {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                margin-bottom: 15px !important;
+                padding: 8px 10px !important;
+                background: linear-gradient(135deg, #FF6E00, #80EF80) !important;
+                color: white !important;
+                border-radius: 5px !important;
+                font-weight: bold !important;
+            }
+            
+            .print-title {
+                font-size: 16px !important;
+                font-weight: bold !important;
+                text-align: center !important;
+                flex-grow: 1 !important;
+            }
+            
+            .print-date {
+                font-size: 12px !important;
+                text-align: left !important;
+                min-width: 120px !important;
+            }
+            
+            /* ترويسة الشركة في الطباعة - التعديل هنا: الشعار بجوار الاسم */
+            .print-company-header {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important; /* توسيط */
+                margin-bottom: 10px !important;
+                padding-bottom: 8px !important;
+                border-bottom: 2px solid #FF6E00 !important;
+                gap: 15px !important; /* مسافة بين الشعار والاسم */
+            }
+            
+            .print-company-logo {
+                height: 50px !important;
+                width: auto !important;
+            }
+            
+            .print-company-info {
+                display: flex !important;
+                align-items: center !important;
+                gap: 15px !important; /* مسافة بين الشعار والاسم */
+            }
+            
+            .print-company-info h2 {
+                font-size: 18px !important;
+                color: #FF6E00 !important;
+                margin-bottom: 3px !important;
+            }
+            
+            .print-company-info p {
+                font-size: 12px !important;
+                color: #666 !important;
+            }
+            
+            /* الإجماليات في صف واحد */
+            .print-totals-row {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                margin-top: 15px !important;
+                padding: 8px 15px !important;
+                background-color: #f5f5f5 !important;
+                border-radius: 5px !important;
+                font-weight: bold !important;
+                font-size: 22px !important;
+            }
+            
+            .print-total-item {
+                margin: 0 10px !important;
+            }
+            
+            /* إزالة الهوامش الزائدة */
+            .order-body {
+                padding: 10px !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            .order-header {
+                padding: 10px !important;
+                margin-bottom: 5px !important;
+            }
+            
+            /* ضغط المسافات بين العناصر */
+            * {
+                margin-top: 0 !important;
+                margin-bottom: 0 !important;
+            }
+            
+            /* إزالة أي مسافات زائدة */
+            br {
+                display: none !important;
+            }
+        }
+        
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-orange);
+            box-shadow: 0 0 0 3px rgba(255, 110, 0, 0.2);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-edit {
+            background-color: var(--accent-blue);
+            color: white;
+        }
+        
+        .btn-delete {
+            background-color: #FF5252;
+            color: white;
+        }
+        
+        /* Restaurant List */
+        .restaurant-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .restaurant-item {
+            background-color: var(--white);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            border-left: 5px solid var(--primary-green);
+        }
+        
+        .restaurant-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+        }
+        
+        .restaurant-info h4 {
+            color: var(--primary-orange);
+            margin-bottom: 5px;
+        }
+        
+        .restaurant-info p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.5s ease;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: #4CAF50;
+        }
+        
+        .notification.error {
+            background-color: #FF5252;
+        }
+        
+        .notification.info {
+            background-color: var(--accent-blue);
+        }
+        
+        /* Print Buttons Container */
+        .print-buttons-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .print-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #2196F3, #0d8bf2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .print-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+        }
+        
+        .print-btn.meat {
+            background: linear-gradient(135deg, #FF6E00, #FF8C42);
+        }
+        
+        .print-btn.appetizers {
+            background: linear-gradient(135deg, #80EF80, #6fe06f);
+        }
+        
+        .print-btn.vegetables {
+            background: linear-gradient(135deg, #2196F3, #0d8bf2);
+        }
+        
+        /* Signature Card */
+        .signature-card {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #FF746C, #FF6E00, #80EF80,#2196F3);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            z-index: 1000;
+            animation: float 6s ease-in-out infinite;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .signature-card:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 12px 35px rgba(0,0,0,0.4); 
+        }
+        
+        @keyframes float { 
+            0% { transform: translateY(0px); } 
+            50% { transform: translateY(-15px); } 
+            100% { transform: translateY(0px); } 
+        }
+        
+        .signature-card::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(135deg, #FF746C, #FF6E00, #80EF80,#2196F3);
+            border-radius: 14px;
+            z-index: -1;
+            animation: borderGlow 3s linear infinite;
+            background-size: 400%;
+        }
+        
+        @keyframes borderGlow { 
+            0% { background-position: 0% 50%; } 
+            50% { background-position: 100% 50%; } 
+            100% { background-position: 0% 50%; } 
+        }
+        
+        .signature-card .name { 
+            font-size: 1.3rem; 
+            font-weight: 700; 
+            margin-bottom: 5px; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3); 
+        }
+        
+        .signature-card .title { 
+            font-size: 0.9rem; 
+            opacity: 0.9; 
+            font-weight: 500; 
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+            
+            .company-info h1 {
+                font-size: 2rem;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .orders-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .tab-content {
+                padding: 20px 15px;
+            }
+            
+            .signature-card { 
+                position: relative; 
+                bottom: auto; 
+                left: auto; 
+                margin: 20px auto 0; 
+                width: fit-content; 
+                animation: none; 
+            } 
+            
+            .signature-card:hover { 
+                transform: none; 
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container">
+                <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="نايف للأغذية" class="logo">
+                <div class="company-info">
+                    <h1>شركة نايف للأغذية</h1>
+                    <p>نظام إدارة طلبيات المطاعم</p>
+                </div>
+            </div>
+            <div class="date-display">
+                <i class="fas fa-calendar-alt"></i>
+                <span id="current-date">--/--/----</span>
+            </div>
+        </div>
+        
+        <!-- Navigation Tabs - تم تعديل الترتيب -->
+        <div class="tabs">
+            <div class="tab active" onclick="openTab('upload')">
+                <i class="fas fa-file-upload"></i> رفع الملف
+            </div>
+            <div class="tab" onclick="openTab('orders')">
+                <i class="fas fa-clipboard-list"></i> عرض الطلبيات
+            </div>
+            <div class="tab" onclick="openTab('totals')">
+                <i class="fas fa-chart-bar"></i> إجماليات الأصناف
+            </div>
+            <div class="tab" onclick="openTab('products')">
+                <i class="fas fa-boxes"></i> إدارة المنتجات
+            </div>
+            <div class="tab" onclick="openTab('restaurants')">
+                <i class="fas fa-store"></i> إدارة المطاعم
+            </div>
+        </div>
+        
+        <!-- Upload Tab -->
+        <div id="upload" class="tab-content active">
+            <h2 class="section-title"><i class="fas fa-file-excel"></i> رفع ملف الطلبيات (Excel)</h2>
+            
+            <div class="card">
+                <div class="file-input-container">
+                    <label class="file-input-label">
+                        <i class="fas fa-file-excel"></i> اختر ملف Excel
+                        <input type="file" id="excelFile" accept=".xlsx,.xls">
+                    </label>
+                    <!-- تم إزالة زر معالجة البيانات -->
+                </div>
+                
+                <div id="fileInfo" style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 8px; display: none;">
+                    <i class="fas fa-info-circle" style="color: var(--accent-blue); margin-left: 5px;"></i>
+                    <span id="fileInfoText"></span>
+                </div>
+            </div>
+            
+            <div id="rawDataTable" style="display: none;">
+                <h3 class="section-title"><i class="fas fa-table"></i> بيانات الملف المعالج</h3>
+                <div style="overflow-x: auto;">
+                    <table class="data-table" id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>اسم المطعم</th>
+                                <th>كود الصنف</th>
+                                <th>اسم الصنف</th>
+                                <th>الشد</th>
+                                <th>الكمية</th>
+                                <th>نوع الطلبية</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            <!-- البيانات ستضاف هنا جافاسكريبت -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- عرض الطلبات مباشرة بعد رفع الملف -->
+            <div id="immediateOrdersDisplay" style="display: none; margin-top: 30px;">
+                <h3 class="section-title"><i class="fas fa-clipboard-check"></i> الطلبيات بعد المعالجة</h3>
+                <div class="search-container">
+                    <input type="text" id="immediateRestaurantSearch" class="search-box" 
+                           placeholder="ابحث عن مطعم لعرض طلبياته...">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                
+                <div id="immediateSearchResults" class="restaurant-list">
+                    <!-- نتائج البحث ستضاف هنا جافاسكريبت -->
+                </div>
+                
+                <div id="immediateOrdersContainer" style="display: none; margin-top: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 class="section-title"><i class="fas fa-clipboard-check"></i> طلبيات المطعم: <span id="immediateSelectedRestaurant">--</span></h3>
+                        <div class="print-buttons-container">
+                            <button class="print-btn meat" onclick="printSingleOrder('meat')">
+                                <i class="fas fa-print"></i> طباعة اللحوم
+                            </button>
+                            <button class="print-btn appetizers" onclick="printSingleOrder('appetizers')">
+                                <i class="fas fa-print"></i> طباعة المقبلات
+                            </button>
+                            <button class="print-btn vegetables" onclick="printSingleOrder('vegetables')">
+                                <i class="fas fa-print"></i> طباعة الخضار
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="orders-container" id="immediateOrdersContainerCards">
+                        <!-- الطلبيات ستضاف هنا جافاسكريبت -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Orders Display Tab - تم نقله ليكون بعد رفع الملف -->
+        <div id="orders" class="tab-content">
+            <h2 class="section-title"><i class="fas fa-search"></i> البحث عن طلبيات المطعم</h2>
+            
+            <div class="card">
+                <div class="search-container">
+                    <input type="text" id="restaurantSearch" class="search-box" 
+                           placeholder="ابحث عن مطعم باللغة العربية...">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                
+                <div id="searchResults" class="restaurant-list">
+                    <!-- نتائج البحث ستضاف هنا جافاسكريبت -->
+                </div>
+            </div>
+            
+            <div id="ordersDisplay" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 class="section-title"><i class="fas fa-clipboard-check"></i> طلبيات المطعم: <span id="selectedRestaurant">--</span></h3>
+                    <div class="print-buttons-container">
+                        <button class="print-btn meat" onclick="printSingleOrder('meat', 'orders')">
+                            <i class="fas fa-print"></i> طباعة اللحوم
+                        </button>
+                        <button class="print-btn appetizers" onclick="printSingleOrder('appetizers', 'orders')">
+                            <i class="fas fa-print"></i> طباعة المقبلات
+                        </button>
+                        <button class="print-btn vegetables" onclick="printSingleOrder('vegetables', 'orders')">
+                            <i class="fas fa-print"></i> طباعة الخضار
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel"></i> تصدير إلى Excel
+                        </button>
+                        <!-- تم إزالة زر طباعة الكل والتقرير الشامل -->
+                    </div>
+                </div>
+                
+                <div class="orders-container" id="ordersContainer">
+                    <!-- الطلبيات ستضاف هنا جافاسكريبت -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Totals Tab - الشاشة الجديدة -->
+        <div id="totals" class="tab-content">
+            <h2 class="section-title"><i class="fas fa-chart-bar"></i> إجماليات الأصناف المطلوبة</h2>
+            
+            <div class="card">
+                <h3><i class="fas fa-filter"></i> تصفية حسب النوع</h3>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="showCategoryTotals('meat')">
+                        <i class="fas fa-drumstick-bite"></i> اللحوم
+                    </button>
+                    <button class="btn btn-green" onclick="showCategoryTotals('appetizers')">
+                        <i class="fas fa-utensils"></i> المقبلات
+                    </button>
+                    <button class="btn btn-secondary" onclick="showCategoryTotals('vegetables')">
+                        <i class="fas fa-carrot"></i> الخضار
+                    </button>
+                    <button class="btn" onclick="showCategoryTotals('all')" style="background-color: #888; color: white;">
+                        <i class="fas fa-list"></i> الكل
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3><i class="fas fa-calculator"></i> إجماليات الأصناف (<span id="currentCategory">الكل</span>)</h3>
+                    <div class="print-buttons-container">
+                        <button class="print-btn" onclick="printCategoryTotals()" style="background: linear-gradient(135deg, #FF6E00, #FF8C42);">
+                            <i class="fas fa-print"></i> طباعة الإجماليات
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportCategoryToExcel()">
+                            <i class="fas fa-file-excel"></i> تصدير إلى Excel
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="totalsSummary" style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; color: var(--primary-orange); font-weight: bold;" id="totalItemsCount">0</div>
+                            <div style="color: var(--text-light);">عدد الأصناف</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; color: var(--primary-green); font-weight: bold;" id="totalQuantitySum">0</div>
+                            <div style="color: var(--text-light);">إجمالي الكمية</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.5rem; color: var(--accent-blue); font-weight: bold;" id="totalPackSum">0</div>
+                            <div style="color: var(--text-light);">إجمالي الشامل</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                    <table class="data-table" id="totalsTable">
+                        <thead>
+                            <tr>
+                                <th>كود الصنف</th>
+                                <th>اسم الصنف</th>
+                                <th>الشد</th>
+                                <th>الكمية الإجمالية</th>
+                                <th>كمية الشامل الإجمالية</th>
+                                <th>عدد المطاعم</th>
+                            </tr>
+                        </thead>
+                        <tbody id="totalsTableBody">
+                            <!-- إجماليات الأصناف ستضاف هنا -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Products Management Tab - تم نقله ليكون بعد عرض الطلبيات -->
+        <div id="products" class="tab-content">
+            <h2 class="section-title"><i class="fas fa-box-open"></i> إدارة المنتجات</h2>
+            
+            <div class="card">
+                <h3><i class="fas fa-filter"></i> تصفية حسب النوع</h3>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="filterProducts('meat')">
+                        <i class="fas fa-drumstick-bite"></i> اللحوم
+                    </button>
+                    <button class="btn btn-green" onclick="filterProducts('appetizers')">
+                        <i class="fas fa-utensils"></i> المقبلات
+                    </button>
+                    <button class="btn btn-secondary" onclick="filterProducts('vegetables')">
+                        <i class="fas fa-carrot"></i> الخضار
+                    </button>
+                    <button class="btn" onclick="filterProducts('all')" style="background-color: #888; color: white;">
+                        <i class="fas fa-list"></i> الكل
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3><i class="fas fa-plus-circle"></i> إضافة منتج جديد</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodCode">كود المنتج</label>
+                        <input type="text" id="prodCode" class="form-control" placeholder="مثال: K1001">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodName">اسم المنتج</label>
+                        <input type="text" id="prodName" class="form-control" placeholder="أدخل اسم المنتج">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodCategory">التصنيف</label>
+                        <select id="prodCategory" class="form-control">
+                            <option value="meat">لحوم</option>
+                            <option value="appetizers">مقبلات</option>
+                            <option value="vegetables">خضار</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodPack">شد الباكت</label>
+                        <input type="number" id="prodPack" class="form-control" placeholder="مثال: 5" step="0.5">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addProduct()">
+                    <i class="fas fa-save"></i> حفظ المنتج
+                </button>
+            </div>
+            
+            <div class="card">
+                <h3><i class="fas fa-boxes"></i> قائمة المنتجات (<span id="productCount">0</span> منتج)</h3>
+                <div style="overflow-x: auto;">
+                    <table class="data-table" id="productsTable">
+                        <thead>
+                            <tr>
+                                <th>كود المنتج</th>
+                                <th>اسم المنتج</th>
+                                <th>التصنيف</th>
+                                <th>شد الباكت</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <!-- المنتجات ستضاف هنا جافاسكريبت -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Restaurants Management Tab - تم نقله ليكون في الأخير -->
+        <div id="restaurants" class="tab-content">
+            <h2 class="section-title"><i class="fas fa-store-alt"></i> إدارة المطاعم</h2>
+            
+            <div class="card">
+                <h3><i class="fas fa-plus-circle"></i> إضافة مطعم جديد</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="restNameAr">اسم المطعم (عربي)</label>
+                        <input type="text" id="restNameAr" class="form-control" placeholder="أدخل الاسم بالعربية">
+                    </div>
+                    <div class="form-group">
+                        <label for="restNameEn">اسم المطعم (إنجليزي)</label>
+                        <input type="text" id="restNameEn" class="form-control" placeholder="أدخل الاسم بالإنجليزية">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addRestaurant()">
+                    <i class="fas fa-save"></i> حفظ المطعم
+                </button>
+            </div>
+            
+            <div class="card">
+                <h3><i class="fas fa-list"></i> قائمة المطاعم</h3>
+                <div class="restaurant-list" id="restaurantList">
+                    <!-- المطاعم ستضاف هنا جافاسكريبت -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- منطقة طباعة طلبية واحدة -->
+    <div id="singleOrderPrintArea" class="single-order-print">
+        <!-- ستضاف محتويات الطلبية هنا عند الطباعة -->
+    </div>
+    
+    <!-- منطقة طباعة إجماليات الأصناف -->
+    <div id="categoryTotalsPrintArea" class="single-order-print">
+        <!-- ستضاف محتويات الإجماليات هنا عند الطباعة -->
+    </div>
+    
+    <!-- Signature Card -->
+    <div class="signature-card no-print">
+        <div class="name">Yasser Elkhateeb</div>
+        <div class="title">مطور البرنامج 67011143</div>
+    </div>
+    
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // البيانات الأساسية
+        let ordersData = [];
+        let restaurants = [];
+        let products = [];
+        
+        // متغيرات للبيانات الحالية
+        let currentSelectedRestaurant = null;
+        let currentRestaurantOrders = [];
+        
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            // عرض التاريخ الحالي بالأرقام الإنجليزية
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ar-EG', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // تحويل الأرقام العربية إلى إنجليزية
+            const arabicToEnglishNumbers = {
+                '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+                '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+            };
+            
+            let englishDateStr = dateStr;
+            for (let arabic in arabicToEnglishNumbers) {
+                englishDateStr = englishDateStr.replace(new RegExp(arabic, 'g'), arabicToEnglishNumbers[arabic]);
+            }
+            
+            document.getElementById('current-date').textContent = englishDateStr;
+            
+            // تحميل البيانات الأولية
+            loadInitialProducts();
+            loadInitialRestaurants();
+            
+            // عرض المطاعم
+            renderRestaurants();
+            
+            // عرض المنتجات
+            renderProducts();
+            updateProductCount();
+            
+            // إعداد البحث
+            document.getElementById('restaurantSearch').addEventListener('input', searchRestaurants);
+            document.getElementById('immediateRestaurantSearch').addEventListener('input', searchImmediateRestaurants);
+            
+            // إعداد معالجة الملف تلقائياً عند اختياره
+            document.getElementById('excelFile').addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    document.getElementById('fileInfo').style.display = 'block';
+                    document.getElementById('fileInfoText').textContent = 
+                        `تم اختيار الملف: ${this.files[0].name}`;
+                    
+                    // معالجة الملف تلقائياً
+                    processFile();
+                }
+            });
+            
+            // تحميل إجماليات الأصناف عند فتح التبويب
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.tab') && e.target.closest('.tab').onclick.toString().includes("openTab('totals')")) {
+                    setTimeout(loadCategoryTotals, 100);
+                }
+            });
+        });
+        
+        // وظائف التبويب
+        function openTab(tabName) {
+            // إخفاء جميع المحتويات
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let content of tabContents) {
+                content.classList.remove('active');
+            }
+            
+            // إلغاء تنشيط جميع التبويبات
+            const tabs = document.getElementsByClassName('tab');
+            for (let tab of tabs) {
+                tab.classList.remove('active');
+            }
+            
+            // عرض المحتوى المحدد
+            document.getElementById(tabName).classList.add('active');
+            
+            // تنشيط التبويب المحدد
+            event.currentTarget.classList.add('active');
+            
+            // إذا كان تبويب الطلبيات، تحديث البحث
+            if (tabName === 'orders') {
+                searchRestaurants();
+            }
+            
+            // إذا كان تبويب رفع الملف وكانت هناك بيانات، عرض البحث
+            if (tabName === 'upload' && ordersData.length > 0) {
+                searchImmediateRestaurants();
+            }
+            
+            // إذا كان تبويب الإجماليات، تحميل البيانات
+            if (tabName === 'totals') {
+                setTimeout(loadCategoryTotals, 100);
+            }
+        }
+        
+        // معالجة ملف Excel - سيتم استدعاؤها تلقائياً
+        function processFile() {
+            const fileInput = document.getElementById('excelFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('يرجى اختيار ملف Excel أولاً', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // افتراض أن البيانات في الورقة الأولى
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    if (jsonData.length === 0) {
+                        showNotification('الملف لا يحتوي على بيانات', 'error');
+                        return;
+                    }
+                    
+                    // معالجة البيانات
+                    processOrdersData(jsonData);
+                    showNotification(`تم معالجة ${jsonData.length} سجل بنجاح`, 'success');
+                    
+                    // عرض معلومات الملف
+                    document.getElementById('fileInfo').style.display = 'block';
+                    document.getElementById('fileInfoText').textContent = 
+                        `تم تحميل ${jsonData.length} سجل من الملف: ${file.name}`;
+                    
+                    // عرض الطلبات مباشرة بعد المعالجة
+                    document.getElementById('immediateOrdersDisplay').style.display = 'block';
+                    searchImmediateRestaurants();
+                    
+                    // تحديث إجماليات الأصناف إذا كان التبويب مفتوح
+                    if (document.getElementById('totals').classList.contains('active')) {
+                        loadCategoryTotals();
+                    }
+                    
+                } catch (error) {
+                    console.error('Error processing file:', error);
+                    showNotification('حدث خطأ في معالجة الملف', 'error');
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // معالجة بيانات الطلبيات - إصدار محسّن
+        function processOrdersData(data) {
+            ordersData = [];
+            
+            // استخراج جميع أسماء المطاعم الفريدة من البيانات
+            const uniqueSiteNames = [...new Set(data.map(row => row['Site Name']).filter(name => name))];
+            
+            // إضافة المطاعم الجديدة تلقائياً
+            uniqueSiteNames.forEach(siteName => {
+                const existingRestaurant = findRestaurantBySiteName(siteName);
+                if (!existingRestaurant) {
+                    const newId = restaurants.length > 0 ? Math.max(...restaurants.map(r => r.id)) + 1 : 1;
+                    const newRestaurant = {
+                        id: newId,
+                        nameAr: siteName,
+                        nameEn: siteName
+                    };
+                    
+                    restaurants.push(newRestaurant);
+                }
+            });
+            
+            // تحديث قائمة المطاعم
+            renderRestaurants();
+            
+            // معالجة كل سجل
+            data.forEach(row => {
+                // البحث عن اسم المطعم المناسب
+                const restaurant = findRestaurantBySiteName(row['Site Name']);
+                
+                if (restaurant && row['RMCode']) {
+                    // البحث عن المنتج
+                    const productCode = row['RMCode'].toString().trim();
+                    let product = products.find(p => p.code === productCode);
+                    
+                    if (!product) {
+                        // إذا لم يكن المنتج موجوداً، إضافته تلقائياً
+                        product = {
+                            code: productCode,
+                            name: row['RMName'] || `منتج ${productCode}`,
+                            category: determineCategory(productCode, row['RMName']),
+                            packSize: 1
+                        };
+                        
+                        products.push(product);
+                    }
+                    
+                    const order = {
+                        restaurantId: restaurant.id,
+                        restaurantNameAr: restaurant.nameAr,
+                        restaurantNameEn: restaurant.nameEn,
+                        productCode: productCode,
+                        productName: row['RMName'] || product.name,
+                        uom: row['UOM'] || 'حبة',
+                        quantity: parseQuantity(row['Requested Qty']),
+                        category: product.category,
+                        packSize: product.packSize,
+                        totalPack: parseQuantity(row['Requested Qty']) * (product.packSize || 1)
+                    };
+                    
+                    ordersData.push(order);
+                }
+            });
+            
+            // عرض البيانات المعالجة
+            renderOrdersTable();
+            renderProducts();
+            updateProductCount();
+        }
+        
+        // تحديد التصنيف بناءً على كود المنتج
+        function determineCategory(code, name) {
+            if (!code) return 'meat';
+            
+            if (code.startsWith('K1') || code.toLowerCase().startsWith('k1')) {
+                return 'meat';
+            } else if (code.startsWith('K2') || code.toLowerCase().startsWith('k2')) {
+                return 'appetizers';
+            } else if (code.startsWith('K3') || code.toLowerCase().startsWith('k3')) {
+                return 'vegetables';
+            }
+            
+            // محاولة التخمين من الاسم
+            if (name) {
+                const nameLower = name.toLowerCase();
+                if (nameLower.includes('دجاج') || nameLower.includes('لحم') || nameLower.includes('فراخ')) {
+                    return 'meat';
+                } else if (nameLower.includes('سلطة') || nameLower.includes('صوص') || nameLower.includes('لبن')) {
+                    return 'appetizers';
+                } else if (nameLower.includes('خضار') || nameLower.includes('بصل') || nameLower.includes('طماطم')) {
+                    return 'vegetables';
+                }
+            }
+            
+            return 'meat'; // الافتراضي
+        }
+        
+        // دالة مساعدة لتحسين معالجة كميات المنتجات
+        function parseQuantity(value) {
+            if (!value && value !== 0) return 0;
+            
+            // تحويل إلى عدد
+            const num = parseFloat(value);
+            
+            // إذا كان الرقم غير صالح، إرجاع 0
+            if (isNaN(num)) return 0;
+            
+            // التأكد من أن الكمية موجبة
+            return Math.abs(num);
+        }
+        
+        // تحسين البحث عن المطاعم في البيانات
+        function findRestaurantBySiteName(siteName) {
+            if (!siteName) return null;
+            
+            // 1. البحث بالتطابق الكامل
+            let restaurant = restaurants.find(r => 
+                r.nameEn === siteName || 
+                r.nameAr === siteName
+            );
+            
+            if (restaurant) return restaurant;
+            
+            // 2. البحث بالتضمين
+            restaurant = restaurants.find(r => 
+                siteName.includes(r.nameEn) || 
+                (r.nameAr && siteName.includes(r.nameAr))
+            );
+            
+            if (restaurant) return restaurant;
+            
+            // 3. البحث بجزء من الاسم
+            const siteNameParts = siteName.split(' ').filter(part => part.length > 2);
+            
+            for (const part of siteNameParts) {
+                restaurant = restaurants.find(r => 
+                    r.nameEn.includes(part) || 
+                    (r.nameAr && r.nameAr.includes(part))
+                );
+                
+                if (restaurant) return restaurant;
+            }
+            
+            return null;
+        }
+        
+        // عرض جدول الطلبيات
+        function renderOrdersTable() {
+            const tableBody = document.getElementById('ordersTableBody');
+            tableBody.innerHTML = '';
+            
+            ordersData.forEach(order => {
+                const row = document.createElement('tr');
+                
+                // تحويل نوع الطلبية إلى نص
+                let categoryText = '';
+                switch(order.category) {
+                    case 'meat': categoryText = 'لحوم'; break;
+                    case 'appetizers': categoryText = 'مقبلات'; break;
+                    case 'vegetables': categoryText = 'خضار'; break;
+                    default: categoryText = order.category;
+                }
+                
+                row.innerHTML = `
+                    <td>${order.restaurantNameAr}</td>
+                    <td>${order.productCode}</td>
+                    <td>${order.productName}</td>
+                    <td>${order.uom}</td>
+                    <td>${order.quantity}</td>
+                    <td>${categoryText}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            document.getElementById('rawDataTable').style.display = 'block';
+        }
+        
+        // البحث الفوري عن المطاعم (بعد رفع الملف)
+        function searchImmediateRestaurants() {
+            const searchTerm = document.getElementById('immediateRestaurantSearch').value.toLowerCase();
+            const resultsContainer = document.getElementById('immediateSearchResults');
+            resultsContainer.innerHTML = '';
+            
+            if (!searchTerm && ordersData.length > 0) {
+                // عرض جميع المطاعم التي لديها طلبيات
+                const restaurantsWithOrders = [...new Set(ordersData.map(o => o.restaurantId))];
+                
+                restaurantsWithOrders.forEach(restId => {
+                    const restaurant = restaurants.find(r => r.id === restId);
+                    if (restaurant) {
+                        addRestaurantToImmediateSearch(restaurant);
+                    }
+                });
+                return;
+            }
+            
+            // تصفية المطاعم حسب مصطلح البحث
+            const filtered = restaurants.filter(restaurant => {
+                const hasOrders = ordersData.some(o => o.restaurantId === restaurant.id);
+                if (!hasOrders) return false;
+                
+                return restaurant.nameAr.toLowerCase().includes(searchTerm) ||
+                       restaurant.nameEn.toLowerCase().includes(searchTerm);
+            });
+            
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">لا توجد نتائج</p>';
+                return;
+            }
+            
+            filtered.forEach(restaurant => {
+                addRestaurantToImmediateSearch(restaurant);
+            });
+        }
+        
+        function addRestaurantToImmediateSearch(restaurant) {
+            const resultsContainer = document.getElementById('immediateSearchResults');
+            
+            const item = document.createElement('div');
+            item.className = 'restaurant-item';
+            item.style.cursor = 'pointer';
+            item.onclick = () => showImmediateRestaurantOrders(restaurant);
+            
+            // حساب عدد الطلبيات لهذا المطعم
+            const meatOrders = ordersData.filter(o => o.restaurantId === restaurant.id && o.category === 'meat').length;
+            const appetizerOrders = ordersData.filter(o => o.restaurantId === restaurant.id && o.category === 'appetizers').length;
+            const vegetableOrders = ordersData.filter(o => o.restaurantId === restaurant.id && o.category === 'vegetables').length;
+            const totalOrders = meatOrders + appetizerOrders + vegetableOrders;
+            
+            item.innerHTML = `
+                <div class="restaurant-info">
+                    <h4>${restaurant.nameAr}</h4>
+                    <p>${restaurant.nameEn}</p>
+                </div>
+                <div style="color: #666; font-size: 0.9rem; text-align: left;">
+                    <div><strong>${totalOrders}</strong> طلبيات</div>
+                    <div>لحوم: ${meatOrders}</div>
+                    <div>مقبلات: ${appetizerOrders}</div>
+                    <div>خضار: ${vegetableOrders}</div>
+                </div>
+            `;
+            
+            resultsContainer.appendChild(item);
+        }
+        
+        function showImmediateRestaurantOrders(restaurant) {
+            document.getElementById('immediateSelectedRestaurant').textContent = restaurant.nameAr;
+            currentSelectedRestaurant = restaurant;
+            
+            // تصفية الطلبيات لهذا المطعم
+            currentRestaurantOrders = ordersData.filter(o => o.restaurantId === restaurant.id);
+            
+            // عرض الطلبيات حسب التصنيف
+            displayImmediateOrdersByCategory(currentRestaurantOrders, restaurant);
+            
+            // إظهار قسم العرض
+            document.getElementById('immediateOrdersContainer').style.display = 'block';
+            
+            // التمرير إلى الأعلى
+            document.getElementById('immediateOrdersContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function displayImmediateOrdersByCategory(orders, restaurant) {
+            const container = document.getElementById('immediateOrdersContainerCards');
+            container.innerHTML = '';
+            
+            // طلبيات اللحوم
+            const meatOrders = orders.filter(o => o.category === 'meat');
+            container.appendChild(createOrderCard('لحوم', meatOrders, restaurant, true));
+            
+            // طلبيات المقبلات
+            const appetizerOrders = orders.filter(o => o.category === 'appetizers');
+            container.appendChild(createOrderCard('مقبلات', appetizerOrders, restaurant, true));
+            
+            // طلبيات الخضار
+            const vegetableOrders = orders.filter(o => o.category === 'vegetables');
+            container.appendChild(createOrderCard('خضار', vegetableOrders, restaurant, true));
+        }
+        
+        // إدارة المطاعم
+        function renderRestaurants() {
+            const container = document.getElementById('restaurantList');
+            container.innerHTML = '';
+            
+            restaurants.forEach(restaurant => {
+                const item = document.createElement('div');
+                item.className = 'restaurant-item';
+                item.innerHTML = `
+                    <div class="restaurant-info">
+                        <h4>${restaurant.nameAr}</h4>
+                        <p>${restaurant.nameEn}</p>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-small btn-edit" onclick="editRestaurant(${restaurant.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-small btn-delete" onclick="deleteRestaurant(${restaurant.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function addRestaurant() {
+            const nameAr = document.getElementById('restNameAr').value.trim();
+            const nameEn = document.getElementById('restNameEn').value.trim();
+            
+            if (!nameAr || !nameEn) {
+                showNotification('يرجى إدخال اسم المطعم باللغتين', 'error');
+                return;
+            }
+            
+            const newId = restaurants.length > 0 ? Math.max(...restaurants.map(r => r.id)) + 1 : 1;
+            
+            restaurants.push({
+                id: newId,
+                nameAr: nameAr,
+                nameEn: nameEn
+            });
+            
+            renderRestaurants();
+            showNotification('تم إضافة المطعم بنجاح', 'success');
+            
+            // تفريغ الحقول
+            document.getElementById('restNameAr').value = '';
+            document.getElementById('restNameEn').value = '';
+        }
+        
+        function editRestaurant(id) {
+            const restaurant = restaurants.find(r => r.id === id);
+            if (!restaurant) return;
+            
+            const newNameAr = prompt('أدخل الاسم الجديد (عربي):', restaurant.nameAr);
+            const newNameEn = prompt('أدخل الاسم الجديد (إنجليزي):', restaurant.nameEn);
+            
+            if (newNameAr && newNameEn) {
+                restaurant.nameAr = newNameAr;
+                restaurant.nameEn = newNameEn;
+                renderRestaurants();
+                showNotification('تم تعديل المطعم بنجاح', 'success');
+            }
+        }
+        
+        function deleteRestaurant(id) {
+            if (confirm('هل أنت متأكد من حذف هذا المطعم؟')) {
+                restaurants = restaurants.filter(r => r.id !== id);
+                renderRestaurants();
+                showNotification('تم حذف المطعم بنجاح', 'success');
+            }
+        }
+        
+        // إدارة المنتجات
+        function renderProducts(filter = 'all') {
+            const tableBody = document.getElementById('productsTableBody');
+            tableBody.innerHTML = '';
+            
+            let filteredProducts = products;
+            if (filter !== 'all') {
+                filteredProducts = products.filter(p => p.category === filter);
+            }
+            
+            filteredProducts.forEach(product => {
+                const row = document.createElement('tr');
+                
+                // تحويل التصنيف إلى نص
+                let categoryText = '';
+                switch(product.category) {
+                    case 'meat': categoryText = 'لحوم'; break;
+                    case 'appetizers': categoryText = 'مقبلات'; break;
+                    case 'vegetables': categoryText = 'خضار'; break;
+                    default: categoryText = product.category;
+                }
+                
+                row.innerHTML = `
+                    <td>${product.code}</td>
+                    <td>${product.name}</td>
+                    <td>${categoryText}</td>
+                    <td>${product.packSize}</td>
+                    <td>
+                        <button class="btn btn-small btn-edit" onclick="editProduct('${product.code}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-small btn-delete" onclick="deleteProduct('${product.code}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            updateProductCount();
+        }
+        
+        function filterProducts(category) {
+            renderProducts(category);
+        }
+        
+        function updateProductCount() {
+            document.getElementById('productCount').textContent = products.length;
+        }
+        
+        function addProduct() {
+            const code = document.getElementById('prodCode').value.trim();
+            const name = document.getElementById('prodName').value.trim();
+            const category = document.getElementById('prodCategory').value;
+            const packSize = parseFloat(document.getElementById('prodPack').value) || 1;
+            
+            if (!code || !name) {
+                showNotification('يرجى إدخال كود واسم المنتج', 'error');
+                return;
+            }
+            
+            // التحقق من عدم تكرار الكود
+            if (products.some(p => p.code === code)) {
+                showNotification('كود المنتج موجود مسبقاً', 'error');
+                return;
+            }
+            
+            products.push({
+                code: code,
+                name: name,
+                category: category,
+                packSize: packSize
+            });
+            
+            renderProducts();
+            showNotification('تم إضافة المنتج بنجاح', 'success');
+            
+            // تفريغ الحقول
+            document.getElementById('prodCode').value = '';
+            document.getElementById('prodName').value = '';
+            document.getElementById('prodPack').value = '';
+        }
+        
+        function editProduct(code) {
+            const product = products.find(p => p.code === code);
+            if (!product) return;
+            
+            const newName = prompt('أدخل الاسم الجديد:', product.name);
+            const newPackSize = prompt('أدخل شد الباكت الجديد:', product.packSize);
+            const newCategory = prompt('أدخل التصنيف الجديد (meat/appetizers/vegetables):', product.category);
+            
+            if (newName) product.name = newName;
+            if (newPackSize) product.packSize = parseFloat(newPackSize);
+            if (newCategory && ['meat', 'appetizers', 'vegetables'].includes(newCategory)) {
+                product.category = newCategory;
+            }
+            
+            renderProducts();
+            showNotification('تم تعديل المنتج بنجاح', 'success');
+        }
+        
+        function deleteProduct(code) {
+            if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                products = products.filter(p => p.code !== code);
+                renderProducts();
+                showNotification('تم حذف المنتج بنجاح', 'success');
+            }
+        }
+        
+        // البحث عن المطاعم وعرض الطلبيات (في تبويب عرض الطلبيات)
+        function searchRestaurants() {
+            const searchTerm = document.getElementById('restaurantSearch').value.toLowerCase();
+            const resultsContainer = document.getElementById('searchResults');
+            resultsContainer.innerHTML = '';
+            
+            if (!searchTerm && ordersData.length > 0) {
+                // عرض جميع المطاعم التي لديها طلبيات
+                const restaurantsWithOrders = [...new Set(ordersData.map(o => o.restaurantId))];
+                
+                restaurantsWithOrders.forEach(restId => {
+                    const restaurant = restaurants.find(r => r.id === restId);
+                    if (restaurant) {
+                        addRestaurantToSearch(restaurant);
+                    }
+                });
+                return;
+            }
+            
+            // تصفية المطاعم حسب مصطلح البحث
+            const filtered = restaurants.filter(restaurant => {
+                const hasOrders = ordersData.some(o => o.restaurantId === restaurant.id);
+                if (!hasOrders && ordersData.length > 0) return false;
+                
+                return restaurant.nameAr.toLowerCase().includes(searchTerm) ||
+                       restaurant.nameEn.toLowerCase().includes(searchTerm);
+            });
+            
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">لا توجد نتائج</p>';
+                return;
+            }
+            
+            filtered.forEach(restaurant => {
+                addRestaurantToSearch(restaurant);
+            });
+        }
+        
+        function addRestaurantToSearch(restaurant) {
+            const resultsContainer = document.getElementById('searchResults');
+            
+            const item = document.createElement('div');
+            item.className = 'restaurant-item';
+            item.style.cursor = 'pointer';
+            item.onclick = () => showRestaurantOrders(restaurant);
+            
+            // حساب عدد الطلبيات لهذا المطعم
+            const meatOrders = ordersData.filter(o => o.restaurantId === restaurant.id && o.category === 'meat').length;
+            const appetizerOrders = ordersData.filter(o => o.restaurantId === restaurant.id && o.category === 'appetizers').length;
+            const vegetableOrders = ordersData.filter(o => o.restaurantId === restaurant.id && o.category === 'vegetables').length;
+            const totalOrders = meatOrders + appetizerOrders + vegetableOrders;
+            
+            item.innerHTML = `
+                <div class="restaurant-info">
+                    <h4>${restaurant.nameAr}</h4>
+                    <p>${restaurant.nameEn}</p>
+                </div>
+                <div style="color: #666; font-size: 0.9rem; text-align: left;">
+                    <div><strong>${totalOrders}</strong> طلبيات</div>
+                    <div>لحوم: ${meatOrders}</div>
+                    <div>مقبلات: ${appetizerOrders}</div>
+                    <div>خضار: ${vegetableOrders}</div>
+                </div>
+            `;
+            
+            resultsContainer.appendChild(item);
+        }
+        
+        function showRestaurantOrders(restaurant) {
+            document.getElementById('selectedRestaurant').textContent = restaurant.nameAr;
+            currentSelectedRestaurant = restaurant;
+            
+            // تصفية الطلبيات لهذا المطعم
+            currentRestaurantOrders = ordersData.filter(o => o.restaurantId === restaurant.id);
+            
+            // عرض الطلبيات حسب التصنيف
+            displayOrdersByCategory(currentRestaurantOrders, restaurant);
+            
+            // إظهار قسم العرض
+            document.getElementById('ordersDisplay').style.display = 'block';
+            
+            // التمرير إلى الأعلى
+            document.getElementById('ordersDisplay').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function displayOrdersByCategory(orders, restaurant) {
+            const container = document.getElementById('ordersContainer');
+            container.innerHTML = '';
+            
+            // طلبيات اللحوم
+            const meatOrders = orders.filter(o => o.category === 'meat');
+            container.appendChild(createOrderCard('لحوم', meatOrders, restaurant, false));
+            
+            // طلبيات المقبلات
+            const appetizerOrders = orders.filter(o => o.category === 'appetizers');
+            container.appendChild(createOrderCard('مقبلات', appetizerOrders, restaurant, false));
+            
+            // طلبيات الخضار
+            const vegetableOrders = orders.filter(o => o.category === 'vegetables');
+            container.appendChild(createOrderCard('خضار', vegetableOrders, restaurant, false));
+        }
+        
+        function createOrderCard(category, orders, restaurant, isImmediate = false) {
+            const card = document.createElement('div');
+            card.className = 'order-card print-section';
+            card.id = `order-card-${category}-${restaurant.id}`;
+            
+            let categoryColor = '';
+            switch(category) {
+                case 'لحوم': categoryColor = '#FF6E00'; break;
+                case 'مقبلات': categoryColor = '#80EF80'; break;
+                case 'خضار': categoryColor = '#2196F3'; break;
+            }
+            
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ar-EG', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // تحويل التاريخ للأرقام الإنجليزية
+            const arabicToEnglishNumbers = {
+                '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+                '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+            };
+            
+            let englishDateStr = dateStr;
+            for (let arabic in arabicToEnglishNumbers) {
+                englishDateStr = englishDateStr.replace(new RegExp(arabic, 'g'), arabicToEnglishNumbers[arabic]);
+            }
+            
+            card.innerHTML = `
+                <div class="order-header" style="background: linear-gradient(135deg, ${categoryColor}, ${categoryColor}99);">
+                    <h3 class="restaurant-name-print" style="font-size: 24px; margin-bottom: 10px;">طلب ${category}</h3>
+                    <p style="font-size: 18px;"><strong>${restaurant.nameAr}</strong></p>
+                    <p>${englishDateStr}</p>
+                </div>
+                <div class="order-body">
+                    ${orders.length > 0 ? createOrderTable(orders, isImmediate) : '<p class="no-items">لا توجد طلبيات</p>'}
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        function createOrderTable(orders, isImmediate = false) {
+            if (orders.length === 0) {
+                return '<p class="no-items">لا توجد طلبيات</p>';
+            }
+            
+            let tableHTML = `
+                <table class="order-table" style="width: 100%; margin: 0 auto; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%; padding: 8px 6px; font-size: 12px;">كود الصنف</th>
+                            <th style="width: 35%; padding: 8px 6px; font-size: 12px;">اسم الصنف</th>
+                            <th style="width: 10%; padding: 8px 6px; font-size: 12px;">الشد</th>
+                            <th style="width: 10%; padding: 8px 6px; font-size: 12px;">الكمية</th>
+                            <th style="width: 15%; padding: 8px 6px; font-size: 12px;">كمية الشامل</th>
+                            <th style="width: 20%; padding: 8px 6px; font-size: 12px;">الملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            orders.forEach((order, index) => {
+                // تحديد لون الصف - نفس الألوان المستخدمة في الطباعة
+                const rowColor = index % 2 === 0 ? 'background-color: #daf3ff;' : 'background-color: white;';
+                
+                tableHTML += `
+                    <tr style="${rowColor}">
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.productCode}</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.productName}</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.uom}</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.quantity}</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.totalPack.toFixed(2)}</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">-</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+            
+            return tableHTML;
+        }
+        
+        // تحميل إجماليات الأصناف
+        function loadCategoryTotals() {
+            if (ordersData.length === 0) {
+                document.getElementById('totalsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px; color: #666;">
+                            لا توجد بيانات طلبيات. يرجى رفع ملف Excel أولاً.
+                        </td>
+                    </tr>
+                `;
+                updateTotalsSummary(0, 0, 0);
+                return;
+            }
+            
+            // تحديد التصنيف الحالي (الافتراضي: الكل)
+            const category = window.currentCategory || 'all';
+            showCategoryTotals(category);
+        }
+        
+        // عرض إجماليات الأصناف حسب التصنيف
+        function showCategoryTotals(category) {
+            window.currentCategory = category;
+            
+            // تحديث نص التصنيف الحالي
+            let categoryName = '';
+            switch(category) {
+                case 'meat': categoryName = 'اللحوم'; break;
+                case 'appetizers': categoryName = 'المقبلات'; break;
+                case 'vegetables': categoryName = 'الخضار'; break;
+                default: categoryName = 'الكل'; break;
+            }
+            document.getElementById('currentCategory').textContent = categoryName;
+            
+            // تصفية البيانات حسب التصنيف
+            let filteredOrders = ordersData;
+            if (category !== 'all') {
+                filteredOrders = ordersData.filter(o => o.category === category);
+            }
+            
+            if (filteredOrders.length === 0) {
+                document.getElementById('totalsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px; color: #666;">
+                            لا توجد بيانات للتصنيف المحدد.
+                        </td>
+                    </tr>
+                `;
+                updateTotalsSummary(0, 0, 0);
+                return;
+            }
+            
+            // تجميع البيانات حسب كود المنتج
+            const aggregatedData = {};
+            
+            filteredOrders.forEach(order => {
+                const key = order.productCode;
+                
+                if (!aggregatedData[key]) {
+                    // البحث عن المنتج للحصول على معلومات إضافية
+                    const product = products.find(p => p.code === order.productCode) || {
+                        name: order.productName,
+                        packSize: order.packSize || 1,
+                        category: order.category
+                    };
+                    
+                    aggregatedData[key] = {
+                        code: order.productCode,
+                        name: product.name,
+                        uom: order.uom,
+                        totalQuantity: 0,
+                        totalPack: 0,
+                        restaurants: new Set()
+                    };
+                }
+                
+                aggregatedData[key].totalQuantity += order.quantity;
+                aggregatedData[key].totalPack += order.totalPack;
+                aggregatedData[key].restaurants.add(order.restaurantId);
+            });
+            
+            // تحويل الكائن إلى مصفوفة وترتيبها حسب الكود
+            const aggregatedArray = Object.values(aggregatedData);
+            aggregatedArray.sort((a, b) => a.code.localeCompare(b.code));
+            
+            // حساب الإجماليات
+            let totalItems = aggregatedArray.length;
+            let totalQuantitySum = 0;
+            let totalPackSum = 0;
+            
+            // عرض البيانات في الجدول
+            const tableBody = document.getElementById('totalsTableBody');
+            tableBody.innerHTML = '';
+            
+            aggregatedArray.forEach(item => {
+                totalQuantitySum += item.totalQuantity;
+                totalPackSum += item.totalPack;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.code}</td>
+                    <td>${item.name}</td>
+                    <td>${item.uom}</td>
+                    <td>${item.totalQuantity.toFixed(2)}</td>
+                    <td>${item.totalPack.toFixed(2)}</td>
+                    <td>${item.restaurants.size}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // تحديث الإجماليات
+            updateTotalsSummary(totalItems, totalQuantitySum, totalPackSum);
+        }
+        
+        // تحديث إجماليات الملخص
+        function updateTotalsSummary(itemsCount, quantitySum, packSum) {
+            document.getElementById('totalItemsCount').textContent = itemsCount;
+            document.getElementById('totalQuantitySum').textContent = quantitySum.toFixed(2);
+            document.getElementById('totalPackSum').textContent = packSum.toFixed(2);
+        }
+        
+        // طباعة إجماليات الأصناف
+        function printCategoryTotals() {
+            const category = window.currentCategory || 'all';
+            
+            // تصفية البيانات حسب التصنيف
+            let filteredOrders = ordersData;
+            if (category !== 'all') {
+                filteredOrders = ordersData.filter(o => o.category === category);
+            }
+            
+            if (filteredOrders.length === 0) {
+                showNotification('لا توجد بيانات للطباعة', 'error');
+                return;
+            }
+            
+            // تجميع البيانات
+            const aggregatedData = {};
+            
+            filteredOrders.forEach(order => {
+                const key = order.productCode;
+                
+                if (!aggregatedData[key]) {
+                    const product = products.find(p => p.code === order.productCode) || {
+                        name: order.productName,
+                        packSize: order.packSize || 1
+                    };
+                    
+                    aggregatedData[key] = {
+                        code: order.productCode,
+                        name: product.name,
+                        uom: order.uom,
+                        totalQuantity: 0,
+                        totalPack: 0,
+                        restaurants: new Set()
+                    };
+                }
+                
+                aggregatedData[key].totalQuantity += order.quantity;
+                aggregatedData[key].totalPack += order.totalPack;
+                aggregatedData[key].restaurants.add(order.restaurantId);
+            });
+            
+            // تحويل الكائن إلى مصفوفة وترتيبها
+            const aggregatedArray = Object.values(aggregatedData);
+            aggregatedArray.sort((a, b) => a.code.localeCompare(b.code));
+            
+            // حساب الإجماليات
+            let totalItems = aggregatedArray.length;
+            let totalQuantitySum = aggregatedArray.reduce((sum, item) => sum + item.totalQuantity, 0);
+            let totalPackSum = aggregatedArray.reduce((sum, item) => sum + item.totalPack, 0);
+            
+            // تحديد اسم التصنيف
+            let categoryName = '';
+            switch(category) {
+                case 'meat': categoryName = 'اللحوم'; break;
+                case 'appetizers': categoryName = 'المقبلات'; break;
+                case 'vegetables': categoryName = 'الخضار'; break;
+                default: categoryName = 'الكل'; break;
+            }
+            
+            // التاريخ بالأرقام الإنجليزية
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ar-EG', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            const arabicToEnglishNumbers = {
+                '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+                '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+            };
+            
+            let englishDateStr = dateStr;
+            for (let arabic in arabicToEnglishNumbers) {
+                englishDateStr = englishDateStr.replace(new RegExp(arabic, 'g'), arabicToEnglishNumbers[arabic]);
+            }
+            
+            // إنشاء نافذة طباعة
+            const printWindow = window.open('', '_blank');
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>إجماليات الأصناف - ${categoryName}</title>
+                    <style>
+                        @media print {
+                            @page {
+                                margin: 1mm !important;
+                            }
+                            
+                            body {
+                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                color: #333;
+                                line-height: 1.2;
+                                padding: 2mm;
+                                margin: 0;
+                                width: 100%;
+                            }
+                            
+                            /* ترويسة الشركة */
+                            .company-header {
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin-bottom: 5mm;
+                                padding-bottom: 2mm;
+                                border-bottom: 1px solid #FF6E00;
+                                gap: 15px;
+                            }
+                            
+                            .company-logo {
+                                height: 45px;
+                                width: auto;
+                            }
+                            
+                            .company-info h2 {
+                                color: #FF6E00;
+                                font-size: 16px;
+                                margin: 0;
+                                padding: 0;
+                            }
+                            
+                            .company-info p {
+                                color: #666;
+                                font-size: 11px;
+                                margin: 2px 0 0 0;
+                                padding: 0;
+                            }
+                            
+                            /* العنوان في صف واحد */
+                            .order-title-row {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                background: linear-gradient(135deg, #FF6E00, #80EF80);
+                                color: white;
+                                padding: 6px 10px;
+                                border-radius: 4px;
+                                margin-bottom: 8px;
+                                font-weight: bold;
+                            }
+                            
+                            .order-main-title {
+                                font-size: 16px;
+                                text-align: center;
+                                flex-grow: 1;
+                                margin: 6px;
+                                padding: 0;
+                            }
+                            
+                            .order-date {
+                                font-size: 14px;
+                                min-width: 110px;
+                                text-align: left;
+                                margin: 6px;
+                                padding: 0;
+                            }
+                            
+                            /* إجماليات الملخص */
+                            .summary-row {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                margin: 8px 0;
+                                padding: 6px 10px;
+                                background-color: #f0f0f0;
+                                border-radius: 4px;
+                                font-weight: bold;
+                                font-size: 18px;
+                                border: 1px solid #ddd;
+                            }
+                            
+                            .summary-item {
+                                margin: 0 8px;
+                                display: flex;
+                                align-items: center;
+                            }
+                            
+                            .summary-label {
+                                margin-left: 9px;
+                                color: #666;
+                            }
+                            
+                            .summary-value {
+                            font-size: 18px !important;
+	     color: #FF6E00;
+                                font-weight: bold;
+                            }
+                            
+                            /* الجدول */
+                            table {
+                                width: 98%;
+                                margin: 0 auto;
+                                border-collapse: collapse;
+                                font-size: 10px;
+                                table-layout: fixed;
+                            }
+                            
+                            table th {
+                                background-color: #2196F3;
+                                color: white;
+                                padding: 3px 2px;
+                                text-align: right;
+                                font-weight: bold;
+                                height: 22px;
+                                border: 1px solid #ddd;
+                            }
+                            
+                            table td {
+                                padding: 2px 2px;
+                                text-align: right;
+                                height: 16px;
+                                border: 1px solid #ddd;
+                                vertical-align: middle;
+                            }
+                            
+                            /* ألوان متناوبة */
+                            table tr:nth-child(even) {
+                                background-color: #daf3ff !important;
+                            }
+                            
+                            table tr:nth-child(odd) {
+                                background-color: white !important;
+                            }
+                            
+                            /* أبعاد الأعمدة */
+                            th:nth-child(1), td:nth-child(1) { /* كود الصنف */
+                                width: 10%;
+                                max-width: 60px;
+                                font-size: 9px;
+                            }
+                            
+                            th:nth-child(2), td:nth-child(2) { /* اسم الصنف */
+                                width: 35%;
+                                min-width: 150px;
+                            }
+                            
+                            th:nth-child(3), td:nth-child(3) { /* الشد */
+                                width: 8%;
+                                font-size: 9px;
+                            }
+                            
+                            th:nth-child(4), td:nth-child(4) { /* الكمية الإجمالية */
+                                width: 12%;
+                                font-size: 11px;
+                                font-weight: bold;
+                            }
+                            
+                            th:nth-child(5), td:nth-child(5) { /* كمية الشامل الإجمالية */
+                                width: 15%;
+                                font-size: 11px;
+                                font-weight: bold;
+                            }
+                            
+                            th:nth-child(6), td:nth-child(6) { /* عدد المطاعم */
+                                width: 10%;
+                                font-size: 9px;
+                            }
+                            
+                            /* إجماليات في صف واحد */
+                            .totals-row {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                margin-top: 10px;
+                                padding: 6px 10px;
+                                background-color: #f5f5f5;
+                                border-radius: 4px;
+                                font-weight: bold;
+                                font-size: 11px;
+                                border: 1px solid #ddd;
+                            }
+                            
+                            .total-item {
+                                margin: 0 8px;
+                                display: flex;
+                                align-items: center;
+                            }
+                            
+                            .total-label {
+                                margin-left: 5px;
+                                color: #666;
+                            }
+                            
+                            .total-value {
+                                color: #FF6E00;
+                                font-weight: bold;
+                            }
+                            
+                            /* إزالة الهوامش الزائدة */
+                            * {
+                                margin-top: 0 !important;
+                                margin-bottom: 0 !important;
+                            }
+                            
+                            h1, h2, h3, h4, h5, h6, p {
+                                margin: 0;
+                                padding: 0;
+                            }
+                        }
+                        
+                        @media screen {
+                            body {
+                                padding: 20px;
+                                background: #f5f5f5;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <!-- ترويسة الشركة -->
+                    <div class="company-header">
+                        <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="شركة نايف للأغذية" class="company-logo">
+                        <div class="company-info">
+                            <h2>شركة نايف للأغذية</h2>
+                            <p>نظام إدارة طلبيات المطاعم</p>
+                        </div>
+                    </div>
+                    
+                    <!-- العنوان في صف واحد -->
+                    <div class="order-title-row">
+                        <div class="order-main-title">
+                            إجماليات الأصناف المطلوبة - ${categoryName}
+                        </div>
+                        <div class="order-date">
+                            ${englishDateStr}
+                        </div>
+                    </div>
+                    
+                    <!-- ملخص الإجماليات -->
+                    <div class="summary-row">
+                        <div class="summary-item">
+                            <span class="summary-label">عدد الأصناف:</span>
+                            <span class="summary-value">${totalItems}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">إجمالي الكمية:</span>
+                            <span class="summary-value">${totalQuantitySum.toFixed(2)}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">إجمالي الشامل:</span>
+                            <span class="summary-value">${totalPackSum.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- الجدول -->
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>كود الصنف</th>
+                                <th>اسم الصنف</th>
+                                <th>الشد</th>
+                                <th>الكمية الإجمالية</th>
+                                <th>كمية الشامل الإجمالية</th>
+                                <th>عدد المطاعم</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `);
+            
+            // إضافة الصفوف
+            aggregatedArray.forEach((item, index) => {
+                const rowColor = index % 2 === 0 ? 'style="background-color: #daf3ff;"' : '';
+                printWindow.document.write(`
+                    <tr ${rowColor}>
+                        <td>${item.code}</td>
+                        <td>${item.name}</td>
+                        <td>${item.uom}</td>
+                        <td>${item.totalQuantity.toFixed(2)}</td>
+                        <td>${item.totalPack.toFixed(2)}</td>
+                        <td>${item.restaurants.size}</td>
+                    </tr>
+                `);
+            });
+            
+            printWindow.document.write(`
+                        </tbody>
+                    </table>
+                    
+                    <!-- صف الإجماليات -->
+                    <div class="totals-row">
+                        <div class="total-item">
+                            <span class="total-label">عدد الأصناف:</span>
+                            <span class="total-value">${totalItems}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">إجمالي الكمية:</span>
+                            <span class="total-value">${totalQuantitySum.toFixed(2)}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">إجمالي الشامل:</span>
+                            <span class="total-value">${totalPackSum.toFixed(2)}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">عدد المطاعم:</span>
+                            <span class="total-value">${new Set(filteredOrders.map(o => o.restaurantId)).size}</span>
+                        </div>
+                    </div>
+                    
+                    <script>
+                        window.onload = function() {
+                            // إضافة توقيت بسيط قبل الطباعة لضمان تحميل الصورة
+                            setTimeout(function() {
+                                window.print();
+                                setTimeout(function() {
+                                    window.close();
+                                }, 500);
+                            }, 300);
+                        };
+                        
+                        // إذا فشل تحميل الصورة، استمر في الطباعة
+                        window.onerror = function() {
+                            setTimeout(function() {
+                                window.print();
+                                setTimeout(function() {
+                                    window.close();
+                                }, 500);
+                            }, 1000);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+        }
+        
+        // تصدير إجماليات الأصناف إلى Excel
+        function exportCategoryToExcel() {
+            const category = window.currentCategory || 'all';
+            
+            // تصفية البيانات حسب التصنيف
+            let filteredOrders = ordersData;
+            if (category !== 'all') {
+                filteredOrders = ordersData.filter(o => o.category === category);
+            }
+            
+            if (filteredOrders.length === 0) {
+                showNotification('لا توجد بيانات للتصدير', 'error');
+                return;
+            }
+            
+            // تجميع البيانات
+            const aggregatedData = {};
+            
+            filteredOrders.forEach(order => {
+                const key = order.productCode;
+                
+                if (!aggregatedData[key]) {
+                    const product = products.find(p => p.code === order.productCode) || {
+                        name: order.productName,
+                        packSize: order.packSize || 1
+                    };
+                    
+                    aggregatedData[key] = {
+                        code: order.productCode,
+                        name: product.name,
+                        uom: order.uom,
+                        totalQuantity: 0,
+                        totalPack: 0,
+                        restaurantCount: new Set()
+                    };
+                }
+                
+                aggregatedData[key].totalQuantity += order.quantity;
+                aggregatedData[key].totalPack += order.totalPack;
+                aggregatedData[key].restaurantCount.add(order.restaurantId);
+            });
+            
+            // تحويل الكائن إلى مصفوفة
+            const aggregatedArray = Object.values(aggregatedData);
+            aggregatedArray.sort((a, b) => a.code.localeCompare(b.code));
+            
+            // تحضير البيانات للتصدير
+            const exportData = aggregatedArray.map(item => ({
+                'كود الصنف': item.code,
+                'اسم الصنف': item.name,
+                'الشد': item.uom,
+                'الكمية الإجمالية': item.totalQuantity,
+                'كمية الشامل الإجمالية': item.totalPack,
+                'عدد المطاعم': item.restaurantCount.size
+            }));
+            
+            // إضافة صف للإجماليات
+            const totalQuantity = aggregatedArray.reduce((sum, item) => sum + item.totalQuantity, 0);
+            const totalPack = aggregatedArray.reduce((sum, item) => sum + item.totalPack, 0);
+            const totalRestaurants = new Set(filteredOrders.map(o => o.restaurantId)).size;
+            
+            exportData.push({
+                'كود الصنف': 'الإجمالي',
+                'اسم الصنف': '',
+                'الشد': '',
+                'الكمية الإجمالية': totalQuantity,
+                'كمية الشامل الإجمالية': totalPack,
+                'عدد المطاعم': totalRestaurants
+            });
+            
+            // إنشاء ورقة عمل
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            
+            // تحديد اسم التصنيف للاسم
+            let categoryName = '';
+            switch(category) {
+                case 'meat': categoryName = 'لحوم'; break;
+                case 'appetizers': categoryName = 'مقبلات'; break;
+                case 'vegetables': categoryName = 'خضار'; break;
+                default: categoryName = 'الكل'; break;
+            }
+            
+            XLSX.utils.book_append_sheet(wb, ws, `إجماليات_${categoryName}`);
+            
+            // تصدير الملف
+            const fileName = `إجماليات_${categoryName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            showNotification('تم تصدير الإجماليات بنجاح', 'success');
+        }
+        
+        // طباعة طلبية واحدة
+        function printSingleOrder(category, source = 'immediate') {
+            if (!currentSelectedRestaurant) {
+                showNotification('لم يتم تحديد مطعم', 'error');
+                return;
+            }
+            
+            const restaurant = currentSelectedRestaurant;
+            const orders = source === 'immediate' 
+                ? currentRestaurantOrders.filter(o => {
+                    if (category === 'meat') return o.category === 'meat';
+                    if (category === 'appetizers') return o.category === 'appetizers';
+                    if (category === 'vegetables') return o.category === 'vegetables';
+                    return false;
+                })
+                : ordersData.filter(o => o.restaurantId === restaurant.id && {
+                    'meat': o.category === 'meat',
+                    'appetizers': o.category === 'appetizers',
+                    'vegetables': o.category === 'vegetables'
+                }[category]);
+            
+            if (orders.length === 0) {
+                showNotification(`لا توجد طلبيات ${getCategoryName(category)}`, 'error');
+                return;
+            }
+            
+            // إنشاء نافذة طباعة
+            const printWindow = window.open('', '_blank');
+            
+            // التاريخ بالأرقام الإنجليزية
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ar-EG', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            const arabicToEnglishNumbers = {
+                '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+                '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+            };
+            
+            let englishDateStr = dateStr;
+            for (let arabic in arabicToEnglishNumbers) {
+                englishDateStr = englishDateStr.replace(new RegExp(arabic, 'g'), arabicToEnglishNumbers[arabic]);
+            }
+            
+            let categoryName = '';
+            switch(category) {
+                case 'meat': categoryName = 'لحوم'; break;
+                case 'appetizers': categoryName = 'مقبلات'; break;
+                case 'vegetables': categoryName = 'خضار'; break;
+            }
+            
+            // الحسابات
+            const totalItems = orders.length;
+            const totalQuantity = orders.reduce((sum, o) => sum + o.quantity, 0);
+            const totalPack = orders.reduce((sum, o) => sum + o.totalPack, 0);
+            
+            // محتوى الطباعة المحسّن - تم تعديل ترويسة الشركة
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>طلب ${categoryName} - ${restaurant.nameAr}</title>
+                    <style>
+                        @media print {
+                            @page {
+                                margin: 1mm !important;
+                            }
+                            
+                            body {
+                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                color: #333;
+                                line-height: 1.2;
+                                padding: 2mm;
+                                margin: 0;
+                                width: 100%;
+                            }
+                            
+                            /* ترويسة الشركة - تم التعديل: الشعار بجوار الاسم */
+                            .company-header {
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin-bottom: 5mm;
+                                padding-bottom: 2mm;
+                                border-bottom: 1px solid #FF6E00;
+                                gap: 15px;
+                            }
+                            
+                            .company-logo {
+                                height: 45px;
+                                width: auto;
+                            }
+                            
+                            .company-info h2 {
+                                color: #FF6E00;
+                                font-size: 16px;
+                                margin: 0;
+                                padding: 0;
+                            }
+                            
+                            .company-info p {
+                                color: #666;
+                                font-size: 11px;
+                                margin: 2px 0 0 0;
+                                padding: 0;
+                            }
+                            
+                            /* العنوان في صف واحد */
+                            .order-title-row {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                background: ${category === 'meat' ? '#FF6E00' : category === 'appetizers' ? '#80EF80' : '#2196F3'};
+                                color: white;
+                                padding: 6px 10px;
+                                border-radius: 4px;
+                                margin-bottom: 8px;
+                                font-weight: bold;
+                            }
+                            
+                            .order-main-title {
+                                font-size: 16px;
+                                text-align: center;
+                                flex-grow: 1;
+                                margin: 0;
+                                padding: 0;
+                            }
+                            
+                            .order-date {
+                                font-size: 11px;
+                                min-width: 110px;
+                                text-align: left;
+                                margin: 0;
+                                padding: 0;
+                            }
+                            
+                            /* الجدول */
+                            table {
+                                width: 98%;
+                                margin: 0 auto;
+                                border-collapse: collapse;
+                                font-size: 10px;
+                                table-layout: fixed;
+                            }
+                            
+                            table th {
+                                background-color: ${category === 'meat' ? '#FF6E00' : category === 'appetizers' ? '#80EF80' : '#2196F3'};
+                                color: white;
+                                padding: 5px 3px;
+                                text-align: right;
+                                font-weight: bold;
+                                height: 24px;
+                                border: 1px solid #ddd;
+                            }
+                            
+                            table td {
+                                padding: 4px 3px;
+                                text-align: right;
+                                height: 20px;
+                                border: 1px solid #ddd;
+                                vertical-align: middle;
+                            }
+                            
+                            /* ألوان متناوبة - نفس ألوان العرض */
+                            table tr:nth-child(even) {
+                                background-color: #daf3ff !important; /* نفس اللون المستخدم في العرض */
+                            }
+                            
+                            table tr:nth-child(odd) {
+                                background-color: white !important;
+                            }
+                            
+                            /* أبعاد الأعمدة */
+                            th:nth-child(1), td:nth-child(1) { /* كود الصنف */
+                                width: 7%;
+                                max-width: 50px;
+                                font-size: 9px;
+                            }
+                            
+                            th:nth-child(2), td:nth-child(2) { /* اسم الصنف */
+                                width: 42%;
+                                min-width: 170px;
+font-size: 12px; /* حجم خط أكبر */
+    font-weight: bold;
+                            }
+                            
+                            th:nth-child(3), td:nth-child(3) { /* الشد */
+                                width: 8%;
+                                font-size: 9px;
+                            }
+                            
+                            th:nth-child(4), td:nth-child(4) { /* الكمية */
+                                width: 10%;
+font-size: 14px; /* حجم خط أكبر */
+    font-weight: bold;
+                            }
+                            
+                            th:nth-child(5), td:nth-child(5) { /* كمية الشامل */
+                                width: 13%;
+font-size: 14px; /* حجم خط أكبر */
+    font-weight: bold;
+                            }
+                            
+                            th:nth-child(6), td:nth-child(6) { /* الملاحظات */
+                                width: 20%;
+                                font-size: 9px;
+                            }
+                            
+                            /* صف الإجماليات */
+                            .totals-row {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                margin-top: 10px;
+                                padding: 6px 10px;
+                                background-color: #f0f0f0;
+                                border-radius: 4px;
+                                font-weight: bold;
+                                font-size: 16px;
+                                border: 1px solid #ddd;
+                            }
+                            
+                            .total-item {
+                                margin: 0 15px !important;
+                                display: flex;
+                                align-items: center;
+                            }
+                            
+                            .total-label {
+                                margin-left: 5px;
+                                color: #666;
+                            }
+                            
+                            .total-value {
+	font-size: 16px !important; /* تكبير للأرقام */
+                                color: #FF6E00;
+                                font-weight: bold;
+                            }
+                            
+                            /* إزالة الهوامش الزائدة */
+                            * {
+                                margin-top: 5px !important;
+                                margin-bottom: 5px !important;
+                            }
+                            
+                            h1, h2, h3, h4, h5, h6, p {
+                                margin: 5px;
+                                padding: 5px;
+                            }
+                        }
+                        
+                        @media screen {
+                            body {
+                                padding: 20px;
+                                background: #f5f5f5;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <!-- ترويسة الشركة - تم التعديل: الشعار بجوار الاسم -->
+                    <div class="company-header">
+                        <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="شركة نايف للأغذية" class="company-logo">
+                        <div class="company-info">
+                            <h2>شركة نايف للأغذية</h2>
+                            <p>نظام إدارة طلبيات المطاعم</p>
+                        </div>
+                    </div>
+                    
+                    <!-- العنوان في صف واحد -->
+                    <div class="order-title-row">
+                        <div class="order-main-title">
+                            طلب ${categoryName} - ${restaurant.nameAr}
+                        </div>
+                        <div class="order-date">
+                            ${englishDateStr}
+                        </div>
+                    </div>
+                    
+                    <!-- الجدول -->
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>كود الصنف</th>
+                                <th>اسم الصنف</th>
+                                <th>الشد</th>
+                                <th>الكمية</th>
+                                <th>كمية الشامل</th>
+                                <th>الملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `);
+            
+            // إضافة الصفوف
+            orders.forEach((order, index) => {
+                const rowColor = index % 2 === 0 ? 'style="background-color: #daf3ff;"' : '';
+                printWindow.document.write(`
+                    <tr ${rowColor}>
+                        <td>${order.productCode}</td>
+                        <td>${order.productName}</td>
+                        <td>${order.uom}</td>
+                        <td>${order.quantity}</td>
+                        <td>${order.totalPack.toFixed(2)}</td>
+                        <td>-</td>
+                    </tr>
+                `);
+            });
+            
+            printWindow.document.write(`
+                        </tbody>
+                    </table>
+                    
+                    <!-- صف الإجماليات في صف واحد -->
+                    <div class="totals-row">
+                        <div class="total-item">
+                            <span class="total-label">عدد الأصناف:</span>
+                            <span class="total-value">${totalItems}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">إجمالي الكمية:</span>
+                            <span class="total-value">${totalQuantity}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">إجمالي الشامل:</span>
+                            <span class="total-value">${totalPack.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <script>
+                        window.onload = function() {
+                            // إضافة توقيت بسيط قبل الطباعة لضمان تحميل الصورة
+                            setTimeout(function() {
+                                window.print();
+                                setTimeout(function() {
+                                    window.close();
+                                }, 500);
+                            }, 300);
+                        };
+                        
+                        // إذا فشل تحميل الصورة، استمر في الطباعة
+                        window.onerror = function() {
+                            setTimeout(function() {
+                                window.print();
+                                setTimeout(function() {
+                                    window.close();
+                                }, 500);
+                            }, 1000);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+        }
+        
+        // الحصول على اسم التصنيف
+        function getCategoryName(category) {
+            switch(category) {
+                case 'meat': return 'لحوم';
+                case 'appetizers': return 'مقبلات';
+                case 'vegetables': return 'خضار';
+                default: return category;
+            }
+        }
+        
+        // تصدير إلى Excel
+        function exportToExcel() {
+            if (!currentSelectedRestaurant) {
+                showNotification('لم يتم تحديد مطعم', 'error');
+                return;
+            }
+            
+            const restaurant = currentSelectedRestaurant;
+            
+            // تصفية الطلبيات للمطعم المحدد
+            const restaurantOrders = ordersData.filter(o => o.restaurantId === restaurant.id);
+            
+            if (restaurantOrders.length === 0) {
+                showNotification('لا توجد طلبيات للتصدير', 'error');
+                return;
+            }
+            
+            // تحضير البيانات للتصدير
+            const exportData = restaurantOrders.map(order => ({
+                'المطعم': order.restaurantNameAr,
+                'كود الصنف': order.productCode,
+                'اسم الصنف': order.productName,
+                'الشد': order.uom,
+                'الكمية': order.quantity,
+                'كمية الشامل': order.totalPack,
+                'نوع الطلبية': order.category === 'meat' ? 'لحوم' : order.category === 'appetizers' ? 'مقبلات' : 'خضار',
+                'التاريخ': new Date().toLocaleDateString('ar-EG')
+            }));
+            
+            // إنشاء ورقة عمل
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "طلبيات");
+            
+            // تصدير الملف
+            const fileName = `طلبيات_${restaurant.nameAr.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            showNotification('تم تصدير البيانات بنجاح', 'success');
+        }
+        
+        // بيانات تجريبية - محذوفة بناءً على طلبك
+        function loadSampleData() {
+            showNotification('يرجى تحميل ملف Excel الخاص بك', 'info');
+        }
+        
+        // دالة مساعدة لتحميل البيانات الأولية للمنتجات من الملف 2
+        function loadInitialProducts() {
+            // هذه المنتجات ستكون موجودة مسبقاً في النظام
+            const initialProducts = [
+                // لحوم
+                { code: "K1053", name: "BBQ Chicken ( دجاج باربكيو )", category: "meat", packSize: 6 },
+                { code: "K1009", name: "Chicken Fillet Spicy ( فيليه فلفل)", category: "meat", packSize: 10 },
+                { code: "K1015", name: "Chicken Finger Fillet ( اصابع فيليه)", category: "meat", packSize: 50 },
+                { code: "K1012", name: "Chicken Fried ( دجاج فرايد عادي)", category: "meat", packSize: 18 },
+                { code: "K1013", name: "Chicken Fried Spicy (دجاج فرايد فلفل)", category: "meat", packSize: 18 },
+                { code: "K1002", name: "Chicken Kabab ( كباب دجاج)", category: "meat", packSize: 2 },
+                { code: "K1029", name: "Chicken Kabab Spicy (كباب دجاج فلفل)", category: "meat", packSize: 2 },
+                { code: "K1019", name: "Chicken Liver ( كبدة متبلة)", category: "meat", packSize: 0.5 },
+                { code: "K1001", name: "Chicken Shawarma ( شاورما دجاج)", category: "meat", packSize: 1 },
+                { code: "K1047", name: "Chicken Strips ( قطع دجاج استربس عادي)", category: "meat", packSize: 10 },
+                
+                // مقبلات
+                { code: "K2044", name: "Cheddar Cheese Sauce Spicy / صوص جبنة فلفل", category: "appetizers", packSize: 0.5 },
+                { code: "K2005", name: "Cole Slaw Big (كول سلو كبير)", category: "appetizers", packSize: 1 },
+                { code: "K2006", name: "Cole Slaw Small ( كول سلو صغير)", category: "appetizers", packSize: 1 },
+                { code: "K2004", name: "Cucumber N Laban ( خيار باللبن)", category: "appetizers", packSize: 1 },
+                { code: "K2011", name: "Eggs ( بيض)", category: "appetizers", packSize: 1 },
+                { code: "K2035", name: "Fattoush Salad Big ( سلطة فتوش كبيرة)", category: "appetizers", packSize: 1 },
+                { code: "K2014", name: "Fattoush Salad Small (سلطة فتوش صغيرة)", category: "appetizers", packSize: 1 },
+                { code: "K2010", name: "Flour Dough (طحين عادي)", category: "appetizers", packSize: 10 },
+                { code: "K2013", name: "Fresh Milk ( حليب)", category: "appetizers", packSize: 1 },
+                { code: "K2039", name: "Fresh Orange Juice ( عصير برتقال طازج)", category: "appetizers", packSize: 1 },
+                
+                // خضار
+                { code: "K3005", name: "Carrots (جزر طازج)", category: "vegetables", packSize: 0.5 },
+                { code: "K3012", name: "Fresh Lemons (ليمون طازج)", category: "vegetables", packSize: 1 },
+                { code: "K3008", name: "Green Chillies (فلفل حار)", category: "vegetables", packSize: 1 },
+                { code: "K3009", name: "Iceberg Lettuce (خس مدور)", category: "vegetables", packSize: 1 },
+                { code: "K3011", name: "Onions White (بصل ابيض طازج)", category: "vegetables", packSize: 1 },
+                { code: "K3003", name: "Parsley (بقدونس)", category: "vegetables", packSize: 1 },
+                { code: "K3026", name: "Red Onions (بصل احمر)", category: "vegetables", packSize: 1 },
+                { code: "K3002", name: "Tomatoes ( طماطم)", category: "vegetables", packSize: 2 },
+                { code: "K3017", name: "Green Capsicum (فلفل حلو)", category: "vegetables", packSize: 0.5 },
+                { code: "K3014", name: "Oranges Fresh(برتقال طازج)", category: "vegetables", packSize: 1 }
+            ];
+            
+            // إضافة المنتجات الأولية فقط إذا لم تكن موجودة
+            initialProducts.forEach(prod => {
+                if (!products.some(p => p.code === prod.code)) {
+                    products.push(prod);
+                }
+            });
+            
+            renderProducts();
+            updateProductCount();
+        }
+        
+        // دالة لتحميل المطاعم الأولية من الملف 2
+        function loadInitialRestaurants() {
+            // هذه المطاعم ستكون موجودة مسبقاً في النظام
+            const initialRestaurants = [
+                { id: 1, nameAr: "الأحمدي", nameEn: "Ahmadi Ind" },
+                { id: 2, nameAr: "الافنيوز", nameEn: "Avenues" },
+                { id: 3, nameAr: "الجابرية بنت الديك", nameEn: "Jabriya 2 - Jabriya BD" },
+                { id: 4, nameAr: "الجابرية تكا", nameEn: "Jabriya 1 - Jabriya Tikka" },
+                { id: 5, nameAr: "الجهراء الصناعية", nameEn: "Jahra 2 - Jahra Ind" },
+                { id: 6, nameAr: "الجهراء بنت الديك", nameEn: "Jahra1-Duwaik" },
+                { id: 7, nameAr: "الجهراء ليالي الشرق", nameEn: "Jahra Layaly Elsharq" },
+                { id: 8, nameAr: "الجهراء مكة", nameEn: "Jahra Makkah" },
+                { id: 9, nameAr: "الخيران أوتليت", nameEn: "Khairan Outlet Mall" },
+                { id: 10, nameAr: "الخيول", nameEn: "Khioul" },
+                { id: 11, nameAr: "الدسمة", nameEn: "Dasma" },
+                { id: 12, nameAr: "الرحاب", nameEn: "Rehab" },
+                { id: 13, nameAr: "الرقة", nameEn: "Riqqa" },
+                { id: 14, nameAr: "الرقعي", nameEn: "Reggai" },
+                { id: 15, nameAr: "الري ستار مول", nameEn: "Al Rai" },
+                { id: 16, nameAr: "الزهراء", nameEn: "Zahra" },
+                { id: 17, nameAr: "السندباد", nameEn: "Salmiya 2 - Sindhibad" },
+                { id: 18, nameAr: "الشرق", nameEn: "Sharq" },
+                { id: 19, nameAr: "الشهداء", nameEn: "Shuhada" },
+                { id: 20, nameAr: "الشويخ", nameEn: "Shuwaikh" },
+                { id: 21, nameAr: "الصليبخات", nameEn: "Sulebhikat" },
+                { id: 22, nameAr: "الصليبية", nameEn: "Suleibiya" },
+                { id: 23, nameAr: "الضباعية", nameEn: "Dabaya" },
+                { id: 24, nameAr: "العارضية الجديد", nameEn: "New Ardiya" },
+                { id: 25, nameAr: "الفحاحيل", nameEn: "Fahaheel" },
+                { id: 26, nameAr: "الفروانية", nameEn: "Farwaniya" },
+                { id: 27, nameAr: "الفروانية الجديد", nameEn: "New Farwaniya" },
+                { id: 28, nameAr: "الفنطاس", nameEn: "Fintas" },
+                { id: 29, nameAr: "الفيحاء", nameEn: "Faiha" },
+                { id: 30, nameAr: "القادسية", nameEn: "Qadsiya" },
+                { id: 31, nameAr: "القيروان", nameEn: "Qairawan" },
+                { id: 32, nameAr: "المطار", nameEn: "Airport" },
+                { id: 33, nameAr: "المنقف", nameEn: "Mangaf" },
+                { id: 34, nameAr: "النافورة", nameEn: "Salmiya 1 - Nafura" },
+                { id: 35, nameAr: "الوفرة", nameEn: "Wafra" },
+                { id: 36, nameAr: "أبو حليفة", nameEn: "Abu Halifa" },
+                { id: 37, nameAr: "جابر الاحمد", nameEn: "Jaber Al-Ahmed" },
+                { id: 38, nameAr: "جليب الشيوخ", nameEn: "Jleeb Al-Shiyoukh" },
+                { id: 39, nameAr: "جمعية الصليبية", nameEn: "Sulaibiya CO-OP" },
+                { id: 40, nameAr: "جمعية العدان", nameEn: "Qurain" },
+                { id: 41, nameAr: "جمعية أبو فطيرة", nameEn: "Abu Fatira Co-Op" },
+                { id: 42, nameAr: "حولي بارك", nameEn: "Hawally Park" },
+                { id: 43, nameAr: "خيران اويا", nameEn: "Khairan Oia" },
+                { id: 44, nameAr: "خيطان الجديد", nameEn: "Khaitan New" },
+                { id: 45, nameAr: "سلوى", nameEn: "Salwa" },
+                { id: 46, nameAr: "سوق القرين", nameEn: "Souq Qurain" },
+                { id: 47, nameAr: "سيد يس", nameEn: "Salmiya 4 - Sayed Yasin" },
+                { id: 48, nameAr: "شارع البحرين", nameEn: "Salmiya 3 - Bahrain Street" },
+                { id: 49, nameAr: "صباح الأحمد", nameEn: "Sabah al Ahmed" },
+                { id: 50, nameAr: "صباح السالم", nameEn: "Sabah Salem" },
+                { id: 51, nameAr: "صباح السالم العرين", nameEn: "Sabah-Salem Alareen" },
+                { id: 52, nameAr: "غرب أبو فطيرة", nameEn: "West Abu Fatira" },
+                { id: 53, nameAr: "كبد", nameEn: "Kabed" },
+                { id: 54, nameAr: "مارينا مول", nameEn: "Marina Mall" },
+                { id: 55, nameAr: "مجمع الكوت", nameEn: "AlKout" },
+                { id: 56, nameAr: "مشرف", nameEn: "Mishref" },
+                { id: 57, nameAr: "مول (360)", nameEn: "360 Mall" },
+                { id: 58, nameAr: "هدية", nameEn: "Hadiya" }
+            ];
+            
+            // إضافة المطاعم الأولية
+            restaurants = initialRestaurants;
+            renderRestaurants();
+        }
+        
+        // عرض الإشعارات
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
