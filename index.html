@@ -366,7 +366,7 @@
         
         .order-table th {
             background-color: var(--accent-blue);
-            color: white;
+            color: Black;
             padding: 10px 10px;
             text-align: right;
             font-weight: 600;
@@ -1360,74 +1360,96 @@
         }
         
         // معالجة بيانات الطلبيات - إصدار محسّن
-        function processOrdersData(data) {
-            ordersData = [];
+        // معالجة بيانات الطلبيات - إصدار محسّن
+function processOrdersData(data) {
+    ordersData = [];
+    
+    // استخراج جميع أسماء المطاعم الفريدة من البيانات
+    const uniqueSiteNames = [...new Set(data.map(row => row['Site Name']).filter(name => name))];
+    
+    // إضافة المطاعم الجديدة تلقائياً
+    uniqueSiteNames.forEach(siteName => {
+        const existingRestaurant = findRestaurantBySiteName(siteName);
+        if (!existingRestaurant) {
+            const newId = restaurants.length > 0 ? Math.max(...restaurants.map(r => r.id)) + 1 : 1;
+            const newRestaurant = {
+                id: newId,
+                nameAr: siteName,
+                nameEn: siteName
+            };
             
-            // استخراج جميع أسماء المطاعم الفريدة من البيانات
-            const uniqueSiteNames = [...new Set(data.map(row => row['Site Name']).filter(name => name))];
-            
-            // إضافة المطاعم الجديدة تلقائياً
-            uniqueSiteNames.forEach(siteName => {
-                const existingRestaurant = findRestaurantBySiteName(siteName);
-                if (!existingRestaurant) {
-                    const newId = restaurants.length > 0 ? Math.max(...restaurants.map(r => r.id)) + 1 : 1;
-                    const newRestaurant = {
-                        id: newId,
-                        nameAr: siteName,
-                        nameEn: siteName
-                    };
-                    
-                    restaurants.push(newRestaurant);
-                }
-            });
-            
-            // تحديث قائمة المطاعم
-            renderRestaurants();
-            
-            // معالجة كل سجل
-            data.forEach(row => {
-                // البحث عن اسم المطعم المناسب
-                const restaurant = findRestaurantBySiteName(row['Site Name']);
-                
-                if (restaurant && row['RMCode']) {
-                    // البحث عن المنتج
-                    const productCode = row['RMCode'].toString().trim();
-                    let product = products.find(p => p.code === productCode);
-                    
-                    if (!product) {
-                        // إذا لم يكن المنتج موجوداً، إضافته تلقائياً
-                        product = {
-                            code: productCode,
-                            name: row['RMName'] || `منتج ${productCode}`,
-                            category: determineCategory(productCode, row['RMName']),
-                            packSize: 1
-                        };
-                        
-                        products.push(product);
-                    }
-                    
-                    const order = {
-                        restaurantId: restaurant.id,
-                        restaurantNameAr: restaurant.nameAr,
-                        restaurantNameEn: restaurant.nameEn,
-                        productCode: productCode,
-                        productName: row['RMName'] || product.name,
-                        uom: row['UOM'] || 'حبة',
-                        quantity: parseQuantity(row['Requested Qty']),
-                        category: product.category,
-                        packSize: product.packSize,
-                        totalPack: parseQuantity(row['Requested Qty']) * (product.packSize || 1)
-                    };
-                    
-                    ordersData.push(order);
-                }
-            });
-            
-            // عرض البيانات المعالجة
-            renderOrdersTable();
-            renderProducts();
-            updateProductCount();
+            restaurants.push(newRestaurant);
         }
+    });
+    
+    // تحديث قائمة المطاعم
+    renderRestaurants();
+    
+    // معالجة كل سجل
+    data.forEach(row => {
+        // البحث عن اسم المطعم المناسب
+        const restaurant = findRestaurantBySiteName(row['Site Name']);
+        
+        if (restaurant && row['RMCode']) {
+            // البحث عن المنتج
+            const productCode = row['RMCode'].toString().trim();
+            let product = products.find(p => p.code === productCode);
+            
+            if (!product) {
+                // إذا لم يكن المنتج موجوداً، إضافته تلقائياً
+                // إضافة معاملات افتراضية حسب الكود
+                let defaultPackSize = 1;
+                
+                if (productCode.startsWith('K1') || productCode.toLowerCase().startsWith('k1')) {
+                    defaultPackSize = 1; // لحوم
+                } else if (productCode.startsWith('K2') || productCode.toLowerCase().startsWith('k2')) {
+                    defaultPackSize = 1; // مقبلات
+                } else if (productCode.startsWith('K3') || productCode.toLowerCase().startsWith('k3')) {
+                    defaultPackSize = 1; // خضار
+                }
+                
+                product = {
+                    code: productCode,
+                    name: row['RMName'] || `منتج ${productCode}`,
+                    category: determineCategory(productCode, row['RMName']),
+                    packSize: defaultPackSize
+                };
+                
+                products.push(product);
+            }
+            
+            // استخدام معامل التحويل من المنتج إذا وجد
+            const packSize = product.packSize || 1;
+            const quantity = parseQuantity(row['Requested Qty']);
+            const totalPack = quantity * packSize;
+            
+            const order = {
+                restaurantId: restaurant.id,
+                restaurantNameAr: restaurant.nameAr,
+                restaurantNameEn: restaurant.nameEn,
+                productCode: productCode,
+                productName: row['RMName'] || product.name,
+                uom: row['UOM'] || 'حبة',
+                quantity: quantity,
+                category: product.category,
+                packSize: packSize,
+                totalPack: totalPack
+            };
+            
+            ordersData.push(order);
+        }
+    });
+    
+    // عرض البيانات المعالجة
+    renderOrdersTable();
+    renderProducts();
+    updateProductCount();
+    
+    // تحديث إجماليات الأصناف إذا كان التبويب مفتوح
+    if (document.getElementById('totals').classList.contains('active')) {
+        loadCategoryTotals();
+    }
+}
         
         // تحديد التصنيف بناءً على كود المنتج
         function determineCategory(code, name) {
@@ -1457,18 +1479,18 @@
         }
         
         // دالة مساعدة لتحسين معالجة كميات المنتجات
-        function parseQuantity(value) {
-            if (!value && value !== 0) return 0;
-            
-            // تحويل إلى عدد
-            const num = parseFloat(value);
-            
-            // إذا كان الرقم غير صالح، إرجاع 0
-            if (isNaN(num)) return 0;
-            
-            // التأكد من أن الكمية موجبة
-            return Math.abs(num);
-        }
+       function parseQuantity(value) {
+    if (!value && value !== 0) return 0;
+    
+    // تحويل إلى عدد
+    const num = parseFloat(value);
+    
+    // إذا كان الرقم غير صالح، إرجاع 0
+    if (isNaN(num)) return 0;
+    
+    // التأكد من أن الكمية موجبة
+    return Math.abs(num);
+}
         
         // تحسين البحث عن المطاعم في البيانات
         function findRestaurantBySiteName(siteName) {
@@ -1537,6 +1559,23 @@
             document.getElementById('rawDataTable').style.display = 'block';
         }
         
+// دالة للحصول على معامل التحويل من الكود
+function getPackSizeByCode(code) {
+    if (!code) return 1;
+    
+    const product = products.find(p => p.code === code);
+    if (product && product.packSize) {
+        return product.packSize;
+    }
+    
+    // قيم افتراضية حسب نوع الكود
+    if (code.startsWith('K1') || code.toLowerCase().startsWith('k1')) return 1; // لحوم
+    if (code.startsWith('K2') || code.toLowerCase().startsWith('k2')) return 1; // مقبلات
+    if (code.startsWith('K3') || code.toLowerCase().startsWith('k3')) return 1; // خضار
+    
+    return 1; // افتراضي
+}
+
         // البحث الفوري عن المطاعم (بعد رفع الملف)
         function searchImmediateRestaurants() {
             const searchTerm = document.getElementById('immediateRestaurantSearch').value.toLowerCase();
@@ -2294,10 +2333,11 @@
                                 justify-content: space-between;
                                 align-items: center;
                                 background: linear-gradient(135deg, #FF6E00, #80EF80);
-                                color: white;
+                                color: Black;
                                 padding: 6px 10px;
                                 border-radius: 4px;
                                 margin-bottom: 8px;
+				font-size: 18px; !important;
                                 font-weight: bold;
                             }
                             
@@ -2359,7 +2399,7 @@
                             
                             table th {
                                 background-color: #2196F3;
-                                color: white;
+                                color: Black;
                                 padding: 3px 2px;
                                 text-align: right;
                                 font-weight: bold;
@@ -2394,6 +2434,8 @@
                             th:nth-child(2), td:nth-child(2) { /* اسم الصنف */
                                 width: 35%;
                                 min-width: 150px;
+    				color: black !important;
+
                             }
                             
                             th:nth-child(3), td:nth-child(3) { /* الشد */
@@ -2798,11 +2840,12 @@
                                 justify-content: space-between;
                                 align-items: center;
                                 background: ${category === 'meat' ? '#FF6E00' : category === 'appetizers' ? '#80EF80' : '#2196F3'};
-                                color: white;
+                                color: Black;
                                 padding: 6px 10px;
                                 border-radius: 4px;
                                 margin-bottom: 8px;
                                 font-weight: bold;
+				font-size: 18px; !important;
                             }
                             
                             .order-main-title {
@@ -3093,63 +3136,150 @@ font-size: 14px; /* حجم خط أكبر */
             showNotification('تم تصدير البيانات بنجاح', 'success');
         }
         
-        // بيانات تجريبية - محذوفة بناءً على طلبك
-        function loadSampleData() {
-            showNotification('يرجى تحميل ملف Excel الخاص بك', 'info');
-        }
+       // دالة مساعدة لتحميل البيانات الأولية للمنتجات من الملف 2
+function loadInitialProducts() {
+    // هذه المنتجات ستكون موجودة مسبقاً في النظام
+    // تم تحديثها لتضمين جميع المنتجات الجديدة مع معامل التحويل (الشد)
+    const initialProducts = [
+        // لحوم - Meat
+        { code: "K1053", name: "BBQ Chicken ( دجاج باربكيو )", category: "meat", packSize: 6 },
+        { code: "K1009", name: "Chicken Fillet Spicy ( فيليه فلفل)", category: "meat", packSize: 10 },
+        { code: "K1015", name: "Chicken Finger Fillet ( اصابع فيليه)", category: "meat", packSize: 50 },
+        { code: "K1012", name: "Chicken Fried ( دجاج فرايد عادي)", category: "meat", packSize: 18 },
+        { code: "K1013", name: "Chicken Fried Spicy (دجاج فرايد فلفل)", category: "meat", packSize: 18 },
+        { code: "K1002", name: "Chicken Kabab ( كباب دجاج)", category: "meat", packSize: 2 },
+        { code: "K1029", name: "Chicken Kabab Spicy (كباب دجاج فلفل)", category: "meat", packSize: 2 },
+        { code: "K1019", name: "Chicken Liver ( كبدة متبلة)", category: "meat", packSize: 0.5 },
+        { code: "K1001", name: "Chicken Shawarma ( شاورما دجاج)", category: "meat", packSize: 1 },
+        { code: "K1047", name: "Chicken Strips ( قطع دجاج استربس عادي)", category: "meat", packSize: 1 },
+        { code: "K1048", name: "Chicken Strips Spicy ( قطع دجاج استربس فلفل)", category: "meat", packSize: 1 },
+        { code: "K1034", name: "Chicken Thighs Skin Less (فخذ مسحب بدون جلد)", category: "meat", packSize: 1 },
+        { code: "K1006", name: "Chicken Tikka ( دجاج تكا عادي)", category: "meat", packSize: 8 },
+        { code: "K1004", name: "Chicken Tikka Brest ( تكا صدور)", category: "meat", packSize: 8 },
+        { code: "K1005", name: "Chicken Tikka Thigh (تكا فخذ)", category: "meat", packSize: 8 },
+        { code: "K1010", name: "Chicken Wings ( جناح متبلة)", category: "meat", packSize: 60 },
+        { code: "K1030", name: "Chiken Wings Spicy (اجنحة فلفل)", category: "meat", packSize: 60 },
+        { code: "K1026", name: "Drum stick Spicy (درام استسك فلفل)", category: "meat", packSize: 16 },
+        { code: "K1039", name: "Drumstic whole Fried ( وصلة دجاج عادي)", category: "meat", packSize: 18 },
+        { code: "K1040", name: "Drumstick whole Fried spicy ( وصلة دجاج فلفل)", category: "meat", packSize: 18 },
+        { code: "K1046", name: "Fillet-Fatayer ( فيليه للمعجنات)", category: "meat", packSize: 1 },
+        { code: "K1044", name: "Grill Chicken Pc -Multi Taste ( قطع دجاج جرل صغير)", category: "meat", packSize: 1 },
+        { code: "K1049", name: "Grilled Chicken Fillet فيليه مشوي", category: "meat", packSize: 5 },
+        { code: "K1017", name: "Grilled Quils (فري مشوي)", category: "meat", packSize: 9 },
+        { code: "K1032", name: "Grilled Quils Spicy (فري فلفل)", category: "meat", packSize: 9 },
+        { code: "K1042", name: "Happy Chicken Pc ( قطع دجاح فرايد صغير عادي)", category: "meat", packSize: 1 },
+        { code: "K1043", name: "Happy Chicken Pc-Spicy ( قطع دجاح فرايد صغير فلفل)", category: "meat", packSize: 1 },
+        { code: "K1021", name: "Masala Chicken (دجاج مسالا)", category: "meat", packSize: 2 },
+        { code: "K1045", name: "Quils Fried ( فرى فرايد عادى)", category: "meat", packSize: 9 },
+        { code: "K1011", name: "Rooster Junior ( فروج نايف)", category: "meat", packSize: 5 },
+        { code: "K1027", name: "Rooster Spicy (فروج فلفل)", category: "meat", packSize: 5 },
+        { code: "K1020", name: "Royal Grilled Chicken (دجاج شواية ملكي)", category: "meat", packSize: 5 },
+        { code: "K1031", name: "Shish Tawook Spicy (شيش طاووق فلفل)", category: "meat", packSize: 2 },
+        { code: "K1003", name: "Sish Tawouk ( شيش طاووق)", category: "meat", packSize: 2 },
+        { code: "K1018", name: "Sultani Chicken ( دجاج سلطاني)", category: "meat", packSize: 2 },
+        { code: "K1033", name: "Thighs Skin On (فخد مسحب بالجلد)", category: "meat", packSize: 1 },
+        { code: "K1023", name: "Tikka Spicy ( تكا فلفل)", category: "meat", packSize: 8 },
+        { code: "K1038", name: "Whole Chi wings Fried spicy ( جناح كامل فلفل)", category: "meat", packSize: 18 },
+        { code: "K1037", name: "Whole Chicken wings Fried ( جناح كامل عادي)", category: "meat", packSize: 18 },
+        { code: "K1014", name: "Bint Al-Deek ( بنت الديك)", category: "meat", packSize: 5 },
+        { code: "K1016", name: "Ch.Finger Fillet Spicy ( اصابع فيليه فلفل)", category: "meat", packSize: 25 },
+        { code: "K1035", name: "Chicken Big Fillet ( بيج فيلية)", category: "meat", packSize: 10 },
+        { code: "K1036", name: "Chicken Big Fillet Spicy ( بيج فيلية فلفل)", category: "meat", packSize: 10 },
+        { code: "K1008", name: "Chicken Fillet ( فيليه عادي)", category: "meat", packSize: 25 },
+        { code: "K1028", name: "Bint deek Spicy (بنت الديك فلفل)", category: "meat", packSize: 5 },
+        { code: "K1055", name: "Grill Chicken (دجاج مشوي)", category: "meat", packSize: 5 },
+        { code: "K1054", name: "Chicken BBQ Thigh (افخاد دجاج مشوية)", category: "meat", packSize: 6 },
+        { code: "k1057", name: "slider regular( سلايدر عادي)", category: "meat", packSize: 10 },
+        { code: "k1058", name: "slider spicy( سلايدر فلفل)", category: "meat", packSize: 10 },
+        { code: "k1070", name: "Fresh Burger Chickens برجر دجاج طازج", category: "meat", packSize: 1 },
+        { code: "K1007", name: "Chicken Drum Stick ( درام ستيك)", category: "meat", packSize: 16 },
+        { code: "k1076", name: "Grilled Chicken Pc / قطع دجاج مشويه", category: "meat", packSize: 18 },
+        { code: "K1072", name: "Chicken Small Wings Spicy جناح صغير فلفل", category: "meat", packSize: 60 },
+        { code: "K120199", name: "Half Boneless chicken -نصف دجاجة مسحب", category: "meat", packSize: 5 },
+        { code: "K1071", name: "Chicken Small Wings Nor جناح صغير عادي", category: "meat", packSize: 60 },
+        { code: "K1075", name: "Fillet Pizza Grill / فيلية بيتزا مشوي", category: "meat", packSize: 10 },
+        { code: "K1073", name: "Fillet Pizza /فيلية بيتزا عادي", category: "meat", packSize: 5 },
         
-        // دالة مساعدة لتحميل البيانات الأولية للمنتجات من الملف 2
-        function loadInitialProducts() {
-            // هذه المنتجات ستكون موجودة مسبقاً في النظام
-            const initialProducts = [
-                // لحوم
-                { code: "K1053", name: "BBQ Chicken ( دجاج باربكيو )", category: "meat", packSize: 6 },
-                { code: "K1009", name: "Chicken Fillet Spicy ( فيليه فلفل)", category: "meat", packSize: 10 },
-                { code: "K1015", name: "Chicken Finger Fillet ( اصابع فيليه)", category: "meat", packSize: 50 },
-                { code: "K1012", name: "Chicken Fried ( دجاج فرايد عادي)", category: "meat", packSize: 18 },
-                { code: "K1013", name: "Chicken Fried Spicy (دجاج فرايد فلفل)", category: "meat", packSize: 18 },
-                { code: "K1002", name: "Chicken Kabab ( كباب دجاج)", category: "meat", packSize: 2 },
-                { code: "K1029", name: "Chicken Kabab Spicy (كباب دجاج فلفل)", category: "meat", packSize: 2 },
-                { code: "K1019", name: "Chicken Liver ( كبدة متبلة)", category: "meat", packSize: 0.5 },
-                { code: "K1001", name: "Chicken Shawarma ( شاورما دجاج)", category: "meat", packSize: 1 },
-                { code: "K1047", name: "Chicken Strips ( قطع دجاج استربس عادي)", category: "meat", packSize: 10 },
-                
-                // مقبلات
-                { code: "K2044", name: "Cheddar Cheese Sauce Spicy / صوص جبنة فلفل", category: "appetizers", packSize: 0.5 },
-                { code: "K2005", name: "Cole Slaw Big (كول سلو كبير)", category: "appetizers", packSize: 1 },
-                { code: "K2006", name: "Cole Slaw Small ( كول سلو صغير)", category: "appetizers", packSize: 1 },
-                { code: "K2004", name: "Cucumber N Laban ( خيار باللبن)", category: "appetizers", packSize: 1 },
-                { code: "K2011", name: "Eggs ( بيض)", category: "appetizers", packSize: 1 },
-                { code: "K2035", name: "Fattoush Salad Big ( سلطة فتوش كبيرة)", category: "appetizers", packSize: 1 },
-                { code: "K2014", name: "Fattoush Salad Small (سلطة فتوش صغيرة)", category: "appetizers", packSize: 1 },
-                { code: "K2010", name: "Flour Dough (طحين عادي)", category: "appetizers", packSize: 10 },
-                { code: "K2013", name: "Fresh Milk ( حليب)", category: "appetizers", packSize: 1 },
-                { code: "K2039", name: "Fresh Orange Juice ( عصير برتقال طازج)", category: "appetizers", packSize: 1 },
-                
-                // خضار
-                { code: "K3005", name: "Carrots (جزر طازج)", category: "vegetables", packSize: 0.5 },
-                { code: "K3012", name: "Fresh Lemons (ليمون طازج)", category: "vegetables", packSize: 1 },
-                { code: "K3008", name: "Green Chillies (فلفل حار)", category: "vegetables", packSize: 1 },
-                { code: "K3009", name: "Iceberg Lettuce (خس مدور)", category: "vegetables", packSize: 1 },
-                { code: "K3011", name: "Onions White (بصل ابيض طازج)", category: "vegetables", packSize: 1 },
-                { code: "K3003", name: "Parsley (بقدونس)", category: "vegetables", packSize: 1 },
-                { code: "K3026", name: "Red Onions (بصل احمر)", category: "vegetables", packSize: 1 },
-                { code: "K3002", name: "Tomatoes ( طماطم)", category: "vegetables", packSize: 2 },
-                { code: "K3017", name: "Green Capsicum (فلفل حلو)", category: "vegetables", packSize: 0.5 },
-                { code: "K3014", name: "Oranges Fresh(برتقال طازج)", category: "vegetables", packSize: 1 }
-            ];
-            
-            // إضافة المنتجات الأولية فقط إذا لم تكن موجودة
-            initialProducts.forEach(prod => {
-                if (!products.some(p => p.code === prod.code)) {
-                    products.push(prod);
-                }
-            });
-            
-            renderProducts();
-            updateProductCount();
-        }
+        // مقبلات - Appetizers
+        { code: "K2044", name: "Cheddar Cheese Sauce Spicy / صوص جبنة فلفل", category: "appetizers", packSize: 0.5 },
+        { code: "K2005", name: "Cole Slaw Big (كول سلو كبير)", category: "appetizers", packSize: 1 },
+        { code: "K2006", name: "Cole Slaw Small ( كول سلو صغير)", category: "appetizers", packSize: 1 },
+        { code: "K2035", name: "Fattoush Salad Big ( سلطة فتوش كبيرة)", category: "appetizers", packSize: 1 },
+        { code: "K2014", name: "Fattoush Salad Small (سلطة فتوش صغيرة)", category: "appetizers", packSize: 1 },
+        { code: "K2010", name: "Flour Dough (طحين عادي)", category: "appetizers", packSize: 10 },
+        { code: "K2017", name: "Garlic Paste ( ثوم مجهز)", category: "appetizers", packSize: 1 },
+        { code: "K2018", name: "Garlic Paste 100gm (ثوم 100 غرام)", category: "appetizers", packSize: 1 },
+        { code: "K2019", name: "Garlic Paste 30gm ( ثوم 30 غرام)", category: "appetizers", packSize: 1 },
+        { code: "K2001", name: "Hummus ( حمص)", category: "appetizers", packSize: 1 },
+        { code: "K2020", name: "Hummus large ( ماعون حمص كبير)", category: "appetizers", packSize: 1 },
+        { code: "K2009", name: "Laban Naif Small (لبن نايف صغير )", category: "appetizers", packSize: 1 },
+        { code: "K2045", name: "Mayo Ketchup Sauce / صوص مايو الكاتشب", category: "appetizers", packSize: 0.5 },
+        { code: "K2026", name: "Mix-Flour Chicken Seasoning ( طحين بهارات فرايد)", category: "appetizers", packSize: 1 },
+        { code: "K2002", name: "Mutabbal ( متبل)", category: "appetizers", packSize: 1 },
+        { code: "K2022", name: "Mutabbal Large ( ماعون متبل كبير)", category: "appetizers", packSize: 1 },
+        { code: "K2007", name: "Puri ( بوري)", category: "appetizers", packSize: 1 },
+        { code: "K2008", name: "Rice&Milk Pudding ( أرز بالحليب)", category: "appetizers", packSize: 1 },
+        { code: "K2033", name: "Rocca Salad Big ( سلطة جرجيركبيرة)", category: "appetizers", packSize: 1 },
+        { code: "K2016", name: "Rocca Salad Small ( سلطة الجرجيرصغيرة)", category: "appetizers", packSize: 1 },
+        { code: "K2031", name: "Sauce for Biryani Rice ( صوص الارز)", category: "appetizers", packSize: 1 },
+        { code: "K2034", name: "Taboulla Salad Big ( سلطة تبولة كبيرة)", category: "appetizers", packSize: 1 },
+        { code: "K2015", name: "Taboulla Salad Small ( سلطة تبوله صغيرة)", category: "appetizers", packSize: 1 },
+        { code: "K2036", name: "Vegitable Salad Big ( سلطة خضراء كبيرة)", category: "appetizers", packSize: 1 },
+        { code: "K2012", name: "Vegitable Salad Small ( سلطة خضراء صغيرة)", category: "appetizers", packSize: 1 },
+        { code: "YOGURT", name: "Yogurt ( روب)", category: "appetizers", packSize: 1 },
+        { code: "K2046", name: "Honey Mustard K (صلصة عسل الخردل)", category: "appetizers", packSize: 0.5 },
+        { code: "K2047", name: "MABOUG SAUCE (صوص معبوج)", category: "appetizers", packSize: 0.5 },
+        { code: "k2038", name: "صوص جبنة شيدر 500جرام", category: "appetizers", packSize: 0.5 },
+        { code: "K2048", name: "Turkish sweet with chocolate (حلوى تركية بالكاكاو)", category: "appetizers", packSize: 1 },
+        { code: "K2049", name: "Spices for French fries /خليط توابل للبطاط", category: "appetizers", packSize: 1 },
+        { code: "K2050", name: "Pink Sauce (بينك صوص)", category: "appetizers", packSize: 1 },
+        { code: "K2052", name: "Sweet Garlic Sauce / سويت جارليك صوص", category: "appetizers", packSize: 0.5 },
+        { code: "K2021", name: "lemon sauce/صوص ليمون", category: "appetizers", packSize: 1 },
+        { code: "K2053", name: "ثوم 150 جرام", category: "appetizers", packSize: 1 },
+        { code: "K2054", name: "sweet Chilli sauce (صلصة الفلفل الحلو )", category: "appetizers", packSize: 1 },
+        { code: "K2055", name: "BBQ Sauce (باربيكيو صوص )", category: "appetizers", packSize: 1 },
         
+        // خضار - Vegetables
+        { code: "K3005", name: "Carrots (جزر طازج)", category: "vegetables", packSize: 0.5 },
+        { code: "K3012", name: "Fresh Lemons (ليمون طازج)", category: "vegetables", packSize: 1 },
+        { code: "K3008", name: "Green Chillies (فلفل حار)", category: "vegetables", packSize: 1 },
+        { code: "K3009", name: "Iceberg Lettuce (خس مدور)", category: "vegetables", packSize: 1 },
+        { code: "K3011", name: "Onions White (بصل ابيض طازج)", category: "vegetables", packSize: 1 },
+        { code: "K3003", name: "Parsley (بقدونس)", category: "vegetables", packSize: 1 },
+        { code: "K3026", name: "Red Onions (بصل احمر)", category: "vegetables", packSize: 1 },
+        { code: "K3002", name: "Tomatoes ( طماطم)", category: "vegetables", packSize: 2 },
+        { code: "K3017", name: "Green Capsicum (فلفل حلو)", category: "vegetables", packSize: 0.5 },
+        { code: "K3014", name: "Oranges Fresh(برتقال طازج)", category: "vegetables", packSize: 1 },
+        { code: "K3030", name: "Fresh Cucumber (خيار طازجة)", category: "vegetables", packSize: 1 },
+        { code: "K3010", name: "ملفوف أحمر", category: "vegetables", packSize: 0.5 },
+        { code: "K3041", name: "Onion Dice Cut / بصل مقطع صغير", category: "vegetables", packSize: 0.5 },
+        { code: "K3039", name: "Capsicum Dice Cut/فلفل مقطع صغير", category: "vegetables", packSize: 0.5 }
+    ];
+    
+    // إضافة المنتجات الأولية فقط إذا لم تكن موجودة
+    initialProducts.forEach(prod => {
+        if (!products.some(p => p.code === prod.code)) {
+            products.push(prod);
+        } else {
+            // تحديث المنتج الموجود إذا تغيرت بياناته
+            const existingIndex = products.findIndex(p => p.code === prod.code);
+            if (existingIndex !== -1) {
+                products[existingIndex] = {
+                    ...products[existingIndex],
+                    name: prod.name,
+                    packSize: prod.packSize,
+                    category: prod.category
+                };
+            }
+        }
+    });
+    
+    renderProducts();
+    updateProductCount();
+}
+        
+
+
         // دالة لتحميل المطاعم الأولية من الملف 2
         function loadInitialRestaurants() {
             // هذه المطاعم ستكون موجودة مسبقاً في النظام
