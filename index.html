@@ -1360,106 +1360,115 @@
         }
         
         // معالجة بيانات الطلبيات - إصدار محسّن
-        // معالجة بيانات الطلبيات - إصدار محسّن
-function processOrdersData(data) {
-    ordersData = [];
-    
-    // استخراج جميع أسماء المطاعم الفريدة من البيانات
-    const uniqueSiteNames = [...new Set(data.map(row => row['Site Name']).filter(name => name))];
-    
-    // إضافة المطاعم الجديدة تلقائياً
-    uniqueSiteNames.forEach(siteName => {
-        const existingRestaurant = findRestaurantBySiteName(siteName);
-        if (!existingRestaurant) {
-            const newId = restaurants.length > 0 ? Math.max(...restaurants.map(r => r.id)) + 1 : 1;
-            const newRestaurant = {
-                id: newId,
-                nameAr: siteName,
-                nameEn: siteName
-            };
+        function processOrdersData(data) {
+            ordersData = [];
             
-            restaurants.push(newRestaurant);
-        }
-    });
-    
-    // تحديث قائمة المطاعم
-    renderRestaurants();
-    
-    // معالجة كل سجل
-    data.forEach(row => {
-        // البحث عن اسم المطعم المناسب
-        const restaurant = findRestaurantBySiteName(row['Site Name']);
-        
-        if (restaurant && row['RMCode']) {
-            // البحث عن المنتج
-            const productCode = row['RMCode'].toString().trim();
-            let product = products.find(p => p.code === productCode);
+            // استخراج جميع أسماء المطاعم الفريدة من البيانات
+            const uniqueSiteNames = [...new Set(data.map(row => row['Site Name']).filter(name => name))];
             
-            if (!product) {
-                // إذا لم يكن المنتج موجوداً، إضافته تلقائياً
-                // إضافة معاملات افتراضية حسب الكود
-                let defaultPackSize = 1;
-                
-                if (productCode.startsWith('K1') || productCode.toLowerCase().startsWith('k1')) {
-                    defaultPackSize = 1; // لحوم
-                } else if (productCode.startsWith('K2') || productCode.toLowerCase().startsWith('k2')) {
-                    defaultPackSize = 1; // مقبلات
-                } else if (productCode.startsWith('K3') || productCode.toLowerCase().startsWith('k3')) {
-                    defaultPackSize = 1; // خضار
+            // إضافة المطاعم الجديدة تلقائياً
+            uniqueSiteNames.forEach(siteName => {
+                const existingRestaurant = findRestaurantBySiteName(siteName);
+                if (!existingRestaurant) {
+                    const newId = restaurants.length > 0 ? Math.max(...restaurants.map(r => r.id)) + 1 : 1;
+                    const newRestaurant = {
+                        id: newId,
+                        nameAr: siteName,
+                        nameEn: siteName
+                    };
+                    
+                    restaurants.push(newRestaurant);
                 }
+            });
+            
+            // تحديث قائمة المطاعم
+            renderRestaurants();
+            
+            // معالجة كل سجل
+            data.forEach(row => {
+                // البحث عن اسم المطعم المناسب
+                const restaurant = findRestaurantBySiteName(row['Site Name']);
                 
-                product = {
-                    code: productCode,
-                    name: row['RMName'] || `منتج ${productCode}`,
-                    category: determineCategory(productCode, row['RMName']),
-                    packSize: defaultPackSize
-                };
-                
-                products.push(product);
+                if (restaurant && row['RMCode']) {
+                    // البحث عن المنتج - باستخدام الدالة المحسنة
+                    const productCode = row['RMCode'].toString().trim();
+                    const normalizedCode = productCode.toLowerCase(); // تحويل للأحرف الصغيرة للمقارنة
+                    let product = findProductByCode(productCode);
+                    
+                    if (!product) {
+                        // إذا لم يكن المنتج موجوداً، إضافته تلقائياً
+                        // إضافة معاملات افتراضية حسب الكود
+                        let defaultPackSize = 1;
+                        
+                        if (normalizedCode.startsWith('k1')) {
+                            defaultPackSize = 1; // لحوم
+                        } else if (normalizedCode.startsWith('k2')) {
+                            defaultPackSize = 1; // مقبلات
+                        } else if (normalizedCode.startsWith('k3')) {
+                            defaultPackSize = 1; // خضار
+                        }
+                        
+                        product = {
+                            code: productCode,
+                            name: row['RMName'] || `منتج ${productCode}`,
+                            category: determineCategory(productCode, row['RMName']),
+                            packSize: defaultPackSize
+                        };
+                        
+                        products.push(product);
+                    }
+                    
+                    // استخدام معامل التحويل من المنتج إذا وجد
+                    const packSize = product.packSize || 1;
+                    const quantity = parseQuantity(row['Requested Qty']);
+                    const totalPack = quantity * packSize;
+                    
+                    const order = {
+                        restaurantId: restaurant.id,
+                        restaurantNameAr: restaurant.nameAr,
+                        restaurantNameEn: restaurant.nameEn,
+                        productCode: productCode,
+                        productName: row['RMName'] || product.name,
+                        uom: row['UOM'] || 'حبة',
+                        quantity: quantity,
+                        category: product.category,
+                        packSize: packSize,
+                        totalPack: totalPack
+                    };
+                    
+                    ordersData.push(order);
+                }
+            });
+            
+            // عرض البيانات المعالجة
+            renderOrdersTable();
+            renderProducts();
+            updateProductCount();
+            
+            // تحديث إجماليات الأصناف إذا كان التبويب مفتوح
+            if (document.getElementById('totals').classList.contains('active')) {
+                loadCategoryTotals();
             }
-            
-            // استخدام معامل التحويل من المنتج إذا وجد
-            const packSize = product.packSize || 1;
-            const quantity = parseQuantity(row['Requested Qty']);
-            const totalPack = quantity * packSize;
-            
-            const order = {
-                restaurantId: restaurant.id,
-                restaurantNameAr: restaurant.nameAr,
-                restaurantNameEn: restaurant.nameEn,
-                productCode: productCode,
-                productName: row['RMName'] || product.name,
-                uom: row['UOM'] || 'حبة',
-                quantity: quantity,
-                category: product.category,
-                packSize: packSize,
-                totalPack: totalPack
-            };
-            
-            ordersData.push(order);
         }
-    });
-    
-    // عرض البيانات المعالجة
-    renderOrdersTable();
-    renderProducts();
-    updateProductCount();
-    
-    // تحديث إجماليات الأصناف إذا كان التبويب مفتوح
-    if (document.getElementById('totals').classList.contains('active')) {
-        loadCategoryTotals();
-    }
-}
         
-        // تحديد التصنيف بناءً على كود المنتج
+        // دالة مساعدة للبحث عن المنتج بطريقة غير حساسة لحالة الأحرف
+        function findProductByCode(code) {
+            if (!code) return null;
+            const normalizedCode = code.toLowerCase();
+            return products.find(p => p.code.toLowerCase() === normalizedCode);
+        }
+        
+        // تحديد التصنيف بناءً على كود المنتج - غير حساس لحالة الأحرف
         function determineCategory(code, name) {
             if (!code) return 'meat';
             
-            if (code.startsWith('K1') || code.toLowerCase().startsWith('k1')) {
+            const normalizedCode = code.toLowerCase();
+            
+            if (normalizedCode.startsWith('k1')) {
                 return 'meat';
-            } else if (code.startsWith('K2') || code.toLowerCase().startsWith('k2')) {
+            } else if (normalizedCode.startsWith('k2')) {
                 return 'appetizers';
-            } else if (code.startsWith('K3') || code.toLowerCase().startsWith('k3')) {
+            } else if (normalizedCode.startsWith('k3')) {
                 return 'vegetables';
             }
             
@@ -1558,20 +1567,21 @@ function processOrdersData(data) {
             
             document.getElementById('rawDataTable').style.display = 'block';
         }
-        
-// دالة للحصول على معامل التحويل من الكود
+
+// دالة للحصول على معامل التحويل من الكود - غير حساسة لحالة الأحرف
 function getPackSizeByCode(code) {
     if (!code) return 1;
     
-    const product = products.find(p => p.code === code);
+    const product = findProductByCode(code);
     if (product && product.packSize) {
         return product.packSize;
     }
     
     // قيم افتراضية حسب نوع الكود
-    if (code.startsWith('K1') || code.toLowerCase().startsWith('k1')) return 1; // لحوم
-    if (code.startsWith('K2') || code.toLowerCase().startsWith('k2')) return 1; // مقبلات
-    if (code.startsWith('K3') || code.toLowerCase().startsWith('k3')) return 1; // خضار
+    const normalizedCode = code.toLowerCase();
+    if (normalizedCode.startsWith('k1')) return 1; // لحوم
+    if (normalizedCode.startsWith('k2')) return 1; // مقبلات
+    if (normalizedCode.startsWith('k3')) return 1; // خضار
     
     return 1; // افتراضي
 }
@@ -1814,8 +1824,8 @@ function getPackSizeByCode(code) {
                 return;
             }
             
-            // التحقق من عدم تكرار الكود
-            if (products.some(p => p.code === code)) {
+            // التحقق من عدم تكرار الكود - غير حساس لحالة الأحرف
+            if (products.some(p => p.code.toLowerCase() === code.toLowerCase())) {
                 showNotification('كود المنتج موجود مسبقاً', 'error');
                 return;
             }
@@ -1837,7 +1847,7 @@ function getPackSizeByCode(code) {
         }
         
         function editProduct(code) {
-            const product = products.find(p => p.code === code);
+            const product = findProductByCode(code);
             if (!product) return;
             
             const newName = prompt('أدخل الاسم الجديد:', product.name);
@@ -1856,9 +1866,12 @@ function getPackSizeByCode(code) {
         
         function deleteProduct(code) {
             if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
-                products = products.filter(p => p.code !== code);
-                renderProducts();
-                showNotification('تم حذف المنتج بنجاح', 'success');
+                const product = findProductByCode(code);
+                if (product) {
+                    products = products.filter(p => p.code.toLowerCase() !== code.toLowerCase());
+                    renderProducts();
+                    showNotification('تم حذف المنتج بنجاح', 'success');
+                }
             }
         }
         
@@ -2104,22 +2117,22 @@ function getPackSizeByCode(code) {
                 return;
             }
             
-            // تجميع البيانات حسب كود المنتج
+            // تجميع البيانات حسب كود المنتج - غير حساس لحالة الأحرف
             const aggregatedData = {};
             
             filteredOrders.forEach(order => {
-                const key = order.productCode;
+                const key = order.productCode.toLowerCase(); // استخدام الأحرف الصغيرة كمفتاح
                 
                 if (!aggregatedData[key]) {
                     // البحث عن المنتج للحصول على معلومات إضافية
-                    const product = products.find(p => p.code === order.productCode) || {
+                    const product = findProductByCode(order.productCode) || {
                         name: order.productName,
                         packSize: order.packSize || 1,
                         category: order.category
                     };
                     
                     aggregatedData[key] = {
-                        code: order.productCode,
+                        code: order.productCode, // الحفاظ على الصيغة الأصلية للعرض
                         name: product.name,
                         uom: order.uom,
                         totalQuantity: 0,
@@ -2135,7 +2148,7 @@ function getPackSizeByCode(code) {
             
             // تحويل الكائن إلى مصفوفة وترتيبها حسب الكود
             const aggregatedArray = Object.values(aggregatedData);
-            aggregatedArray.sort((a, b) => a.code.localeCompare(b.code));
+            aggregatedArray.sort((a, b) => a.code.toLowerCase().localeCompare(b.code.toLowerCase()));
             
             // حساب الإجماليات
             let totalItems = aggregatedArray.length;
@@ -2208,36 +2221,36 @@ function getPackSizeByCode(code) {
                 return;
             }
             
-            // تجميع البيانات
+            // تجميع البيانات - غير حساس لحالة الأحرف
             const aggregatedData = {};
             
             filteredOrders.forEach(order => {
-                const key = order.productCode;
+                const key = order.productCode.toLowerCase(); // استخدام الأحرف الصغيرة كمفتاح
                 
                 if (!aggregatedData[key]) {
-                    const product = products.find(p => p.code === order.productCode) || {
+                    const product = findProductByCode(order.productCode) || {
                         name: order.productName,
                         packSize: order.packSize || 1
                     };
                     
                     aggregatedData[key] = {
-                        code: order.productCode,
+                        code: order.productCode, // الحفاظ على الصيغة الأصلية للعرض
                         name: product.name,
                         uom: order.uom,
                         totalQuantity: 0,
                         totalPack: 0,
-                        restaurants: new Set()
+                        restaurantCount: new Set()
                     };
                 }
                 
                 aggregatedData[key].totalQuantity += order.quantity;
                 aggregatedData[key].totalPack += order.totalPack;
-                aggregatedData[key].restaurants.add(order.restaurantId);
+                aggregatedData[key].restaurantCount.add(order.restaurantId);
             });
             
             // تحويل الكائن إلى مصفوفة وترتيبها
             const aggregatedArray = Object.values(aggregatedData);
-            aggregatedArray.sort((a, b) => a.code.localeCompare(b.code));
+            aggregatedArray.sort((a, b) => a.code.toLowerCase().localeCompare(b.code.toLowerCase()));
             
             // حساب الإجماليات
             let totalItems = aggregatedArray.length;
@@ -2295,6 +2308,17 @@ function getPackSizeByCode(code) {
                                 padding: 2mm;
                                 margin: 0;
                                 width: 100%;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center; /* محاذاة كل شيء في المنتصف */
+                            }
+                            
+                            .print-container {
+                                width: 95%;
+                                max-width: 95%;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center; /* محاذاة المحتوى في المنتصف */
                             }
                             
                             /* ترويسة الشركة */
@@ -2306,6 +2330,7 @@ function getPackSizeByCode(code) {
                                 padding-bottom: 2mm;
                                 border-bottom: 1px solid #FF6E00;
                                 gap: 15px;
+                                width: 100%;
                             }
                             
                             .company-logo {
@@ -2318,6 +2343,7 @@ function getPackSizeByCode(code) {
                                 font-size: 16px;
                                 margin: 0;
                                 padding: 0;
+                                text-align: center;
                             }
                             
                             .company-info p {
@@ -2325,6 +2351,7 @@ function getPackSizeByCode(code) {
                                 font-size: 11px;
                                 margin: 2px 0 0 0;
                                 padding: 0;
+                                text-align: center;
                             }
                             
                             /* العنوان في صف واحد */
@@ -2337,7 +2364,8 @@ function getPackSizeByCode(code) {
                                 padding: 6px 10px;
                                 border-radius: 4px;
                                 margin-bottom: 8px;
-				font-size: 18px; !important;
+                                width: 100%;
+                                font-size: 18px !important;
                                 font-weight: bold;
                             }
                             
@@ -2369,6 +2397,7 @@ function getPackSizeByCode(code) {
                                 font-weight: bold;
                                 font-size: 22px;
                                 border: 1px solid #ddd;
+                                width: 100%;
                             }
                             
                             .summary-item {
@@ -2390,29 +2419,31 @@ function getPackSizeByCode(code) {
                             
                             /* الجدول */
                             table {
-                                width: 98%;
-                                margin: 0 auto;
+                                width: 100%;
                                 border-collapse: collapse;
-                                font-size: 10px;
+                                font-size: 9px; /* تصغير حجم الخط */
                                 table-layout: fixed;
+                                margin: 0 auto; /* توسيط الجدول */
                             }
                             
                             table th {
                                 background-color: #2196F3;
                                 color: Black;
-                                padding: 3px 2px;
+                                padding: 2px 2px; /* تقليل الحشوة */
                                 text-align: right;
                                 font-weight: bold;
-                                height: 22px;
+                                height: 18px !important; /* تقليل ارتفاع الصف بنسبة 25% */
                                 border: 1px solid #ddd;
+                                font-size: 9px; /* تصغير حجم الخط */
                             }
                             
                             table td {
-                                padding: 2px 2px;
+                                padding: 2px 2px; /* تقليل الحشوة */
                                 text-align: right;
-                                height: 16px;
+                                height: 14px !important; /* تقليل ارتفاع الصف بنسبة 25% */
                                 border: 1px solid #ddd;
                                 vertical-align: middle;
+                                font-size: 9px; /* تصغير حجم الخط */
                             }
                             
                             /* ألوان متناوبة */
@@ -2428,36 +2459,34 @@ function getPackSizeByCode(code) {
                             th:nth-child(1), td:nth-child(1) { /* كود الصنف */
                                 width: 10%;
                                 max-width: 60px;
-                                font-size: 9px;
+                                font-size: 8px;
                             }
                             
                             th:nth-child(2), td:nth-child(2) { /* اسم الصنف */
-                                width: 35%;
+                                width: 40%;
                                 min-width: 150px;
-    				color: black !important;
-
                             }
                             
                             th:nth-child(3), td:nth-child(3) { /* الشد */
                                 width: 8%;
-                                font-size: 9px;
+                                font-size: 8px;
                             }
                             
                             th:nth-child(4), td:nth-child(4) { /* الكمية الإجمالية */
                                 width: 12%;
-                                font-size: 11px;
+                                font-size: 10px;
                                 font-weight: bold;
                             }
                             
                             th:nth-child(5), td:nth-child(5) { /* كمية الشامل الإجمالية */
-                                width: 15%;
-                                font-size: 11px;
+                                width: 12% !important; /* تصغير عرض العمود */
+                                font-size: 10px;
                                 font-weight: bold;
                             }
                             
                             th:nth-child(6), td:nth-child(6) { /* عدد المطاعم */
-                                width: 10%;
-                                font-size: 9px;
+                                width: 8%;
+                                font-size: 8px;
                             }
                             
                             /* صف الإجماليات - تم التعديل هنا: تكبير الأرقام */
@@ -2471,6 +2500,7 @@ function getPackSizeByCode(code) {
                                 border-radius: 4px;
                                 font-weight: bold;
                                 border: 1px solid #ddd;
+                                width: 100%;
                             }
                             
                             .total-item {
@@ -2512,57 +2542,58 @@ function getPackSizeByCode(code) {
                     </style>
                 </head>
                 <body>
-                    <!-- ترويسة الشركة -->
-                    <div class="company-header">
-                        <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="شركة نايف للأغذية" class="company-logo">
-                        <div class="company-info">
-                            <h2>شركة نايف للأغذية</h2>
-                            <p>نظام إدارة طلبيات المطاعم</p>
+                    <div class="print-container">
+                        <!-- ترويسة الشركة -->
+                        <div class="company-header">
+                            <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="شركة نايف للأغذية" class="company-logo">
+                            <div class="company-info">
+                                <h2>شركة نايف للأغذية</h2>
+                                <p>نظام إدارة طلبيات المطاعم</p>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- العنوان في صف واحد -->
-                    <div class="order-title-row">
-                        <div class="order-main-title">
-                            إجماليات الأصناف المطلوبة - ${categoryName}
+                        
+                        <!-- العنوان في صف واحد -->
+                        <div class="order-title-row">
+                            <div class="order-main-title">
+                                إجماليات الأصناف المطلوبة - ${categoryName}
+                            </div>
+                            <div class="order-date">
+                                ${englishDateStr}
+                            </div>
                         </div>
-                        <div class="order-date">
-                            ${englishDateStr}
+                        
+                        <!-- ملخص الإجماليات -->
+                        <div class="summary-row">
+                            <div class="summary-item">
+                                <span class="summary-label">عدد الأصناف:</span>
+                                <span class="summary-value">${totalItems}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">إجمالي الكمية:</span>
+                                <span class="summary-value">${formatNumberWithoutDecimals(totalQuantitySum)}</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">إجمالي الشامل:</span>
+                                <span class="summary-value">${formatNumberWithoutDecimals(totalPackSum)}</span>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- ملخص الإجماليات -->
-                    <div class="summary-row">
-                        <div class="summary-item">
-                            <span class="summary-label">عدد الأصناف:</span>
-                            <span class="summary-value">${totalItems}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">إجمالي الكمية:</span>
-                            <span class="summary-value">${formatNumberWithoutDecimals(totalQuantitySum)}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">إجمالي الشامل:</span>
-                            <span class="summary-value">${formatNumberWithoutDecimals(totalPackSum)}</span>
-                        </div>
-                    </div>
-                    
-                    <!-- الجدول -->
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>كود الصنف</th>
-                                <th>اسم الصنف</th>
-                                <th>الشد</th>
-                                <th>الكمية الإجمالية</th>
-                                <th>كمية الشامل الإجمالية</th>
-                                <th>عدد المطاعم</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                        
+                        <!-- الجدول -->
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>كود الصنف</th>
+                                    <th>اسم الصنف</th>
+                                    <th>الشد</th>
+                                    <th>الكمية الإجمالية</th>
+                                    <th>كمية الشامل الإجمالية</th>
+                                    <th>عدد المطاعم</th>
+                                </tr>
+                            </thead>
+                            <tbody>
             `);
             
-            // إضافة الصفوف
+            // إضافة الصفوف - تم تغيير الترتيب
             aggregatedArray.forEach((item, index) => {
                 const rowColor = index % 2 === 0 ? 'style="background-color: #daf3ff;"' : '';
                 printWindow.document.write(`
@@ -2572,32 +2603,33 @@ function getPackSizeByCode(code) {
                         <td>${item.uom}</td>
                         <td>${formatNumberWithoutDecimals(item.totalQuantity)}</td>
                         <td>${formatNumberWithoutDecimals(item.totalPack)}</td>
-                        <td>${item.restaurants.size}</td>
+                        <td>${item.restaurantCount.size}</td>
                     </tr>
                 `);
             });
             
             printWindow.document.write(`
-                        </tbody>
-                    </table>
-                    
-                    <!-- صف الإجماليات مع تكبير الأرقام -->
-                    <div class="totals-row">
-                        <div class="total-item">
-                            <span class="total-label">عدد الأصناف:</span>
-                            <span class="total-value">${totalItems}</span>
-                        </div>
-                        <div class="total-item">
-                            <span class="total-label">إجمالي الكمية:</span>
-                            <span class="total-value">${formatNumberWithoutDecimals(totalQuantitySum)}</span>
-                        </div>
-                        <div class="total-item">
-                            <span class="total-label">إجمالي الشامل:</span>
-                            <span class="total-value">${formatNumberWithoutDecimals(totalPackSum)}</span>
-                        </div>
-                        <div class="total-item">
-                            <span class="total-label">عدد المطاعم:</span>
-                            <span class="total-value">${new Set(filteredOrders.map(o => o.restaurantId)).size}</span>
+                            </tbody>
+                        </table>
+                        
+                        <!-- صف الإجماليات مع تكبير الأرقام -->
+                        <div class="totals-row" style="justify-content: center; gap: 30px;">
+                            <div class="total-item">
+                                <span class="total-label">عدد الأصناف:</span>
+                                <span class="total-value">${totalItems}</span>
+                            </div>
+                            <div class="total-item">
+                                <span class="total-label">إجمالي الكمية:</span>
+                                <span class="total-value">${formatNumberWithoutDecimals(totalQuantitySum)}</span>
+                            </div>
+                            <div class="total-item">
+                                <span class="total-label">إجمالي الشامل:</span>
+                                <span class="total-value">${formatNumberWithoutDecimals(totalPackSum)}</span>
+                            </div>
+                            <div class="total-item">
+                                <span class="total-label">عدد المطاعم:</span>
+                                <span class="total-value">${new Set(filteredOrders.map(o => o.restaurantId)).size}</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -2644,20 +2676,20 @@ function getPackSizeByCode(code) {
                 return;
             }
             
-            // تجميع البيانات
+            // تجميع البيانات - غير حساس لحالة الأحرف
             const aggregatedData = {};
             
             filteredOrders.forEach(order => {
-                const key = order.productCode;
+                const key = order.productCode.toLowerCase(); // استخدام الأحرف الصغيرة كمفتاح
                 
                 if (!aggregatedData[key]) {
-                    const product = products.find(p => p.code === order.productCode) || {
+                    const product = findProductByCode(order.productCode) || {
                         name: order.productName,
                         packSize: order.packSize || 1
                     };
                     
                     aggregatedData[key] = {
-                        code: order.productCode,
+                        code: order.productCode, // الحفاظ على الصيغة الأصلية للعرض
                         name: product.name,
                         uom: order.uom,
                         totalQuantity: 0,
@@ -2673,7 +2705,7 @@ function getPackSizeByCode(code) {
             
             // تحويل الكائن إلى مصفوفة
             const aggregatedArray = Object.values(aggregatedData);
-            aggregatedArray.sort((a, b) => a.code.localeCompare(b.code));
+            aggregatedArray.sort((a, b) => a.code.toLowerCase().localeCompare(b.code.toLowerCase()));
             
             // تحضير البيانات للتصدير
             const exportData = aggregatedArray.map(item => ({
@@ -2781,7 +2813,7 @@ function getPackSizeByCode(code) {
             const totalQuantity = orders.reduce((sum, o) => sum + o.quantity, 0);
             const totalPack = orders.reduce((sum, o) => sum + o.totalPack, 0);
             
-            // محتوى الطباعة المحسّن - تم تعديل ترويسة الشركة
+            // محتوى الطباعة المحسّن
             printWindow.document.write(`
                 <!DOCTYPE html>
                 <html dir="rtl" lang="ar">
@@ -2802,9 +2834,20 @@ function getPackSizeByCode(code) {
                                 padding: 2mm;
                                 margin: 0;
                                 width: 100%;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center; /* محاذاة كل شيء في المنتصف */
                             }
                             
-                            /* ترويسة الشركة - تم التعديل: الشعار بجوار الاسم */
+                            .print-container {
+                                width: 95%;
+                                max-width: 95%;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center; /* محاذاة المحتوى في المنتصف */
+                            }
+                            
+                            /* ترويسة الشركة */
                             .company-header {
                                 display: flex;
                                 align-items: center;
@@ -2813,6 +2856,7 @@ function getPackSizeByCode(code) {
                                 padding-bottom: 2mm;
                                 border-bottom: 1px solid #FF6E00;
                                 gap: 15px;
+                                width: 100%;
                             }
                             
                             .company-logo {
@@ -2825,6 +2869,7 @@ function getPackSizeByCode(code) {
                                 font-size: 16px;
                                 margin: 0;
                                 padding: 0;
+                                text-align: center;
                             }
                             
                             .company-info p {
@@ -2832,6 +2877,7 @@ function getPackSizeByCode(code) {
                                 font-size: 11px;
                                 margin: 2px 0 0 0;
                                 padding: 0;
+                                text-align: center;
                             }
                             
                             /* العنوان في صف واحد */
@@ -2844,8 +2890,9 @@ function getPackSizeByCode(code) {
                                 padding: 6px 10px;
                                 border-radius: 4px;
                                 margin-bottom: 8px;
+                                width: 100%;
                                 font-weight: bold;
-				font-size: 18px; !important;
+                                font-size: 18px !important;
                             }
                             
                             .order-main-title {
@@ -2866,74 +2913,75 @@ function getPackSizeByCode(code) {
                             
                             /* الجدول */
                             table {
-                                width: 98%;
-                                margin: 0 auto;
+                                width: 100%;
                                 border-collapse: collapse;
-                                font-size: 10px;
+                                font-size: 9px; /* تصغير حجم الخط */
                                 table-layout: fixed;
+                                margin: 0 auto; /* توسيط الجدول */
                             }
                             
                             table th {
                                 background-color: ${category === 'meat' ? '#FF6E00' : category === 'appetizers' ? '#80EF80' : '#2196F3'};
                                 color: white;
-                                padding: 5px 3px;
+                                padding: 3px 2px; /* تقليل الحشوة */
                                 text-align: right;
                                 font-weight: bold;
-                                height: 24px;
+                                height: 18px !important; /* تقليل ارتفاع الصف بنسبة 25% */
                                 border: 1px solid #ddd;
+                                font-size: 9px; /* تصغير حجم الخط */
                             }
                             
                             table td {
-                                padding: 4px 3px;
+                                padding: 2px 2px; /* تقليل الحشوة */
                                 text-align: right;
-                                height: 20px;
+                                height: 14px !important; /* تقليل ارتفاع الصف بنسبة 25% */
                                 border: 1px solid #ddd;
                                 vertical-align: middle;
+                                font-size: 9px; /* تصغير حجم الخط */
                             }
                             
                             /* ألوان متناوبة - نفس ألوان العرض */
                             table tr:nth-child(even) {
-                                background-color: #daf3ff !important; /* نفس اللون المستخدم في العرض */
+                                background-color: #daf3ff !important;
                             }
                             
                             table tr:nth-child(odd) {
                                 background-color: white !important;
                             }
                             
-                            /* أبعاد الأعمدة */
+                            /* أبعاد الأعمدة - تم تغيير الترتيب */
                             th:nth-child(1), td:nth-child(1) { /* كود الصنف */
-                                width: 7%;
+                                width: 10%;
                                 max-width: 50px;
-                                font-size: 9px;
+                                font-size: 8px;
                             }
                             
                             th:nth-child(2), td:nth-child(2) { /* اسم الصنف */
-                                width: 42%;
+                                width: 45%;
                                 min-width: 170px;
-font-size: 12px; /* حجم خط أكبر */
-    font-weight: bold;
+                                font-size: 10px;
                             }
                             
                             th:nth-child(3), td:nth-child(3) { /* الشد */
                                 width: 8%;
-                                font-size: 9px;
+                                font-size: 8px;
                             }
                             
                             th:nth-child(4), td:nth-child(4) { /* الكمية */
                                 width: 10%;
-font-size: 14px; /* حجم خط أكبر */
-    font-weight: bold;
+                                font-size: 10px;
+                                font-weight: bold;
                             }
                             
                             th:nth-child(5), td:nth-child(5) { /* كمية الشامل */
-                                width: 13%;
-font-size: 14px; /* حجم خط أكبر */
-    font-weight: bold;
+                                width: 12% !important; /* تصغير عرض العمود */
+                                font-size: 10px;
+                                font-weight: bold;
                             }
                             
                             th:nth-child(6), td:nth-child(6) { /* الملاحظات */
-                                width: 20%;
-                                font-size: 9px;
+                                width: 15%;
+                                font-size: 8px;
                             }
                             
                             /* صف الإجماليات */
@@ -2946,8 +2994,9 @@ font-size: 14px; /* حجم خط أكبر */
                                 background-color: #f0f0f0;
                                 border-radius: 4px;
                                 font-weight: bold;
-                                font-size: 16px;
+                                font-size: 14px; /* تصغير حجم الخط */
                                 border: 1px solid #ddd;
+                                width: 100%;
                             }
                             
                             .total-item {
@@ -2959,23 +3008,24 @@ font-size: 14px; /* حجم خط أكبر */
                             .total-label {
                                 margin-left: 5px;
                                 color: #666;
+                                font-size: 12px;
                             }
                             
                             .total-value {
-                                font-size: 16px !important; /* تكبير للأرقام */
+                                font-size: 14px !important; /* تصغير حجم الخط */
                                 color: #FF6E00;
                                 font-weight: bold;
                             }
                             
                             /* إزالة الهوامش الزائدة */
                             * {
-                                margin-top: 5px !important;
-                                margin-bottom: 5px !important;
+                                margin-top: 0 !important;
+                                margin-bottom: 0 !important;
                             }
                             
                             h1, h2, h3, h4, h5, h6, p {
-                                margin: 5px;
-                                padding: 5px;
+                                margin: 0;
+                                padding: 0;
                             }
                         }
                         
@@ -2988,41 +3038,42 @@ font-size: 14px; /* حجم خط أكبر */
                     </style>
                 </head>
                 <body>
-                    <!-- ترويسة الشركة - تم التعديل: الشعار بجوار الاسم -->
-                    <div class="company-header">
-                        <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="شركة نايف للأغذية" class="company-logo">
-                        <div class="company-info">
-                            <h2>شركة نايف للأغذية</h2>
-                            <p>نظام إدارة طلبيات المطاعم</p>
+                    <div class="print-container">
+                        <!-- ترويسة الشركة -->
+                        <div class="company-header">
+                            <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="شركة نايف للأغذية" class="company-logo">
+                            <div class="company-info">
+                                <h2>شركة نايف للأغذية</h2>
+                                <p>نظام إدارة طلبيات المطاعم</p>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- العنوان في صف واحد -->
-                    <div class="order-title-row">
-                        <div class="order-main-title">
-                            طلب ${categoryName} - ${restaurant.nameAr}
+                        
+                        <!-- العنوان في صف واحد -->
+                        <div class="order-title-row">
+                            <div class="order-main-title">
+                                طلب ${categoryName} - ${restaurant.nameAr}
+                            </div>
+                            <div class="order-date">
+                                ${englishDateStr}
+                            </div>
                         </div>
-                        <div class="order-date">
-                            ${englishDateStr}
-                        </div>
-                    </div>
-                    
-                    <!-- الجدول -->
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>كود الصنف</th>
-                                <th>اسم الصنف</th>
-                                <th>الشد</th>
-                                <th>الكمية</th>
-                                <th>كمية الشامل</th>
-                                <th>الملاحظات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                        
+                        <!-- الجدول - تم تغيير ترتيب الأعمدة -->
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>كود الصنف</th>
+                                    <th>اسم الصنف</th>
+                                    <th>الشد</th>
+                                    <th>الكمية</th>
+                                    <th>كمية الشامل</th>
+                                    <th>الملاحظات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
             `);
             
-            // إضافة الصفوف
+            // إضافة الصفوف - تم تغيير الترتيب
             orders.forEach((order, index) => {
                 const rowColor = index % 2 === 0 ? 'style="background-color: #daf3ff;"' : '';
                 printWindow.document.write(`
@@ -3038,22 +3089,23 @@ font-size: 14px; /* حجم خط أكبر */
             });
             
             printWindow.document.write(`
-                        </tbody>
-                    </table>
-                    
-                    <!-- صف الإجماليات في صف واحد -->
-                    <div class="totals-row">
-                        <div class="total-item">
-                            <span class="total-label">عدد الأصناف:</span>
-                            <span class="total-value">${totalItems}</span>
-                        </div>
-                        <div class="total-item">
-                            <span class="total-label">إجمالي الكمية:</span>
-                            <span class="total-value">${totalQuantity}</span>
-                        </div>
-                        <div class="total-item">
-                            <span class="total-label">إجمالي الشامل:</span>
-                            <span class="total-value">${formatNumberWithoutDecimals(totalPack)}</span>
+                            </tbody>
+                        </table>
+                        
+                        <!-- صف الإجماليات في صف واحد -->
+                        <div class="totals-row" style="justify-content: center; gap: 30px;">
+                            <div class="total-item">
+                                <span class="total-label">عدد الأصناف:</span>
+                                <span class="total-value">${totalItems}</span>
+                            </div>
+                            <div class="total-item">
+                                <span class="total-label">إجمالي الكمية:</span>
+                                <span class="total-value">${totalQuantity}</span>
+                            </div>
+                            <div class="total-item">
+                                <span class="total-label">إجمالي الشامل:</span>
+                                <span class="total-value">${formatNumberWithoutDecimals(totalPack)}</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -3193,7 +3245,7 @@ function loadInitialProducts() {
         { code: "k1058", name: "slider spicy( سلايدر فلفل)", category: "meat", packSize: 10 },
         { code: "k1070", name: "Fresh Burger Chickens برجر دجاج طازج", category: "meat", packSize: 1 },
         { code: "K1007", name: "Chicken Drum Stick ( درام ستيك)", category: "meat", packSize: 16 },
-        { code: "k1076", name: "Grilled Chicken Pc / قطع دجاج مشويه", category: "meat", packSize: 18 },
+        { code: "K1076", name: "Grilled Chicken Pc / قطع دجاج مشويه", category: "meat", packSize: 18 },
         { code: "K1072", name: "Chicken Small Wings Spicy جناح صغير فلفل", category: "meat", packSize: 60 },
         { code: "K120199", name: "Half Boneless chicken -نصف دجاجة مسحب", category: "meat", packSize: 5 },
         { code: "K1071", name: "Chicken Small Wings Nor جناح صغير عادي", category: "meat", packSize: 60 },
@@ -3228,7 +3280,7 @@ function loadInitialProducts() {
         { code: "K2012", name: "Vegitable Salad Small ( سلطة خضراء صغيرة)", category: "appetizers", packSize: 1 },
         { code: "YOGURT", name: "Yogurt ( روب)", category: "appetizers", packSize: 1 },
         { code: "K2046", name: "Honey Mustard K (صلصة عسل الخردل)", category: "appetizers", packSize: 0.5 },
-        { code: "K2047", name: "MABOUG SAUCE (صوص معبوج)", category: "appetizers", packSize: 0.5 },
+        { code: "k2047", name: "MABOUG SAUCE (صوص معبوج)", category: "appetizers", packSize: 0.5 },
         { code: "k2038", name: "صوص جبنة شيدر 500جرام", category: "appetizers", packSize: 0.5 },
         { code: "K2048", name: "Turkish sweet with chocolate (حلوى تركية بالكاكاو)", category: "appetizers", packSize: 1 },
         { code: "K2049", name: "Spices for French fries /خليط توابل للبطاط", category: "appetizers", packSize: 1 },
@@ -3236,8 +3288,8 @@ function loadInitialProducts() {
         { code: "K2052", name: "Sweet Garlic Sauce / سويت جارليك صوص", category: "appetizers", packSize: 0.5 },
         { code: "K2021", name: "lemon sauce/صوص ليمون", category: "appetizers", packSize: 1 },
         { code: "K2053", name: "ثوم 150 جرام", category: "appetizers", packSize: 1 },
-        { code: "K2054", name: "sweet Chilli sauce (صلصة الفلفل الحلو )", category: "appetizers", packSize: 1 },
-        { code: "K2055", name: "BBQ Sauce (باربيكيو صوص )", category: "appetizers", packSize: 1 },
+        { code: "K2055", name: "sweet Chilli sauce (صلصة الفلفل الحلو )", category: "appetizers", packSize: 1 },
+        { code: "K2054", name: "BBQ Sauce (باربيكيو صوص )", category: "appetizers", packSize: 1 },
         
         // خضار - Vegetables
         { code: "K3005", name: "Carrots (جزر طازج)", category: "vegetables", packSize: 0.5 },
@@ -3258,11 +3310,11 @@ function loadInitialProducts() {
     
     // إضافة المنتجات الأولية فقط إذا لم تكن موجودة
     initialProducts.forEach(prod => {
-        if (!products.some(p => p.code === prod.code)) {
+        if (!products.some(p => p.code.toLowerCase() === prod.code.toLowerCase())) {
             products.push(prod);
         } else {
             // تحديث المنتج الموجود إذا تغيرت بياناته
-            const existingIndex = products.findIndex(p => p.code === prod.code);
+            const existingIndex = products.findIndex(p => p.code.toLowerCase() === prod.code.toLowerCase());
             if (existingIndex !== -1) {
                 products[existingIndex] = {
                     ...products[existingIndex],
