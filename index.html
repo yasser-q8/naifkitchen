@@ -452,14 +452,14 @@
             .order-table th {
                 font-size: 10px !important;
                 padding: 4px 3px !important;
-                height: 22px !important;
+                height: 6px !important;
             }
             
             .order-table td {
                 font-size: 10px !important;
                 padding: 3px 3px !important;
-                height: 18px !important;
-                line-height: 1.1 !important;
+                height: 6px !important;
+                line-height: 1 !important;
             }
             
             /* تصغير عرض كود الصنف أكثر */
@@ -2027,16 +2027,17 @@ function getPackSizeByCode(code) {
                 return '<p class="no-items">لا توجد طلبيات</p>';
             }
             
+            // تم تغيير ترتيب الأعمدة: اليسار لليمين
             let tableHTML = `
                 <table class="order-table" style="width: 100%; margin: 0 auto; border-collapse: collapse;">
                     <thead>
                         <tr>
-                            <th style="width: 10%; padding: 8px 6px; font-size: 12px;">كود الصنف</th>
-                            <th style="width: 35%; padding: 8px 6px; font-size: 12px;">اسم الصنف</th>
-                            <th style="width: 10%; padding: 8px 6px; font-size: 12px;">الشد</th>
-                            <th style="width: 10%; padding: 8px 6px; font-size: 12px;">الكمية</th>
+                            <th style="width: 15%; padding: 8px 6px; font-size: 12px;">الملاحظات</th>
                             <th style="width: 15%; padding: 8px 6px; font-size: 12px;">كمية الشامل</th>
-                            <th style="width: 20%; padding: 8px 6px; font-size: 12px;">الملاحظات</th>
+                            <th style="width: 10%; padding: 8px 6px; font-size: 12px;">الكمية</th>
+                            <th style="width: 10%; padding: 8px 6px; font-size: 12px;">الشد</th>
+                            <th style="width: 35%; padding: 8px 6px; font-size: 12px;">اسم الصنف</th>
+                            <th style="width: 10%; padding: 8px 6px; font-size: 12px;">كود الصنف</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2048,12 +2049,12 @@ function getPackSizeByCode(code) {
                 
                 tableHTML += `
                     <tr style="${rowColor}">
-                        <td style="padding: 8px 6px; font-size: 12px;">${order.productCode}</td>
-                        <td style="padding: 8px 6px; font-size: 12px;">${order.productName}</td>
-                        <td style="padding: 8px 6px; font-size: 12px;">${order.uom}</td>
-                        <td style="padding: 8px 6px; font-size: 12px;">${order.quantity}</td>
-                        <td style="padding: 8px 6px; font-size: 12px;">${order.totalPack.toFixed(2)}</td>
                         <td style="padding: 8px 6px; font-size: 12px;">-</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.totalPack.toFixed(2)}</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.quantity}</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.uom}</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.productName}</td>
+                        <td style="padding: 8px 6px; font-size: 12px;">${order.productCode}</td>
                     </tr>
                 `;
             });
@@ -2155,7 +2156,7 @@ function getPackSizeByCode(code) {
             let totalQuantitySum = 0;
             let totalPackSum = 0;
             
-            // عرض البيانات في الجدول
+            // عرض البيانات في الجدول - تم تغيير الترتيب
             const tableBody = document.getElementById('totalsTableBody');
             tableBody.innerHTML = '';
             
@@ -2206,462 +2207,462 @@ function getPackSizeByCode(code) {
             document.getElementById('totalPackSum').textContent = formatNumberWithoutDecimals(packSum);
         }
         
-        // طباعة إجماليات الأصناف
-        function printCategoryTotals() {
-            const category = window.currentCategory || 'all';
-            
-            // تصفية البيانات حسب التصنيف
-            let filteredOrders = ordersData;
-            if (category !== 'all') {
-                filteredOrders = ordersData.filter(o => o.category === category);
-            }
-            
-            if (filteredOrders.length === 0) {
-                showNotification('لا توجد بيانات للطباعة', 'error');
-                return;
-            }
-            
-            // تجميع البيانات - غير حساس لحالة الأحرف
-            const aggregatedData = {};
-            
-            filteredOrders.forEach(order => {
-                const key = order.productCode.toLowerCase(); // استخدام الأحرف الصغيرة كمفتاح
-                
-                if (!aggregatedData[key]) {
-                    const product = findProductByCode(order.productCode) || {
-                        name: order.productName,
-                        packSize: order.packSize || 1
-                    };
-                    
-                    aggregatedData[key] = {
-                        code: order.productCode, // الحفاظ على الصيغة الأصلية للعرض
-                        name: product.name,
-                        uom: order.uom,
-                        totalQuantity: 0,
-                        totalPack: 0,
-                        restaurantCount: new Set()
-                    };
-                }
-                
-                aggregatedData[key].totalQuantity += order.quantity;
-                aggregatedData[key].totalPack += order.totalPack;
-                aggregatedData[key].restaurantCount.add(order.restaurantId);
-            });
-            
-            // تحويل الكائن إلى مصفوفة وترتيبها
-            const aggregatedArray = Object.values(aggregatedData);
-            aggregatedArray.sort((a, b) => a.code.toLowerCase().localeCompare(b.code.toLowerCase()));
-            
-            // حساب الإجماليات
-            let totalItems = aggregatedArray.length;
-            let totalQuantitySum = aggregatedArray.reduce((sum, item) => sum + item.totalQuantity, 0);
-            let totalPackSum = aggregatedArray.reduce((sum, item) => sum + item.totalPack, 0);
-            
-            // تحديد اسم التصنيف
-            let categoryName = '';
-            switch(category) {
-                case 'meat': categoryName = 'اللحوم'; break;
-                case 'appetizers': categoryName = 'المقبلات'; break;
-                case 'vegetables': categoryName = 'الخضار'; break;
-                default: categoryName = 'الكل'; break;
-            }
-            
-            // التاريخ بالأرقام الإنجليزية
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('ar-EG', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            
-            const arabicToEnglishNumbers = {
-                '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
-                '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+        // طباعة إجماليات الأصناف **********************************************************************************************************************************************************
+     // دالة طباعة إجماليات الأصناف - مع ترتيب الأعمدة الجديد
+function printCategoryTotals() {
+    const category = window.currentCategory || 'all';
+    
+    // تصفية البيانات حسب التصنيف
+    let filteredOrders = ordersData;
+    if (category !== 'all') {
+        filteredOrders = ordersData.filter(o => o.category === category);
+    }
+    
+    if (filteredOrders.length === 0) {
+        showNotification('لا توجد بيانات للطباعة', 'error');
+        return;
+    }
+    
+    // تجميع البيانات - غير حساس لحالة الأحرف
+    const aggregatedData = {};
+    
+    filteredOrders.forEach(order => {
+        const key = order.productCode.toLowerCase(); // استخدام الأحرف الصغيرة كمفتاح
+        
+        if (!aggregatedData[key]) {
+            const product = findProductByCode(order.productCode) || {
+                name: order.productName,
+                packSize: order.packSize || 1
             };
             
-            let englishDateStr = dateStr;
-            for (let arabic in arabicToEnglishNumbers) {
-                englishDateStr = englishDateStr.replace(new RegExp(arabic, 'g'), arabicToEnglishNumbers[arabic]);
-            }
-            
-            // إنشاء نافذة طباعة
-            const printWindow = window.open('', '_blank');
-            
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html dir="rtl" lang="ar">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>إجماليات الأصناف - ${categoryName}</title>
-                    <style>
-                        @media print {
-                            @page {
-                                margin: 1mm !important;
-                            }
-                            
-                            body {
-                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                                color: #333;
-                                line-height: 1.2;
-                                padding: 2mm;
-                                margin: 0;
-                                width: 100%;
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center; /* محاذاة كل شيء في المنتصف */
-                            }
-                            
-                            .print-container {
-                                width: 95%;
-                                max-width: 95%;
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center; /* محاذاة المحتوى في المنتصف */
-                            }
-                            
-                            /* ترويسة الشركة */
-                            .company-header {
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                margin-bottom: 5mm;
-                                padding-bottom: 2mm;
-                                border-bottom: 1px solid #FF6E00;
-                                gap: 15px;
-                                width: 100%;
-                            }
-                            
-                            .company-logo {
-                                height: 45px;
-                                width: auto;
-                            }
-                            
-                            .company-info h2 {
-                                color: #FF6E00;
-                                font-size: 16px;
-                                margin: 0;
-                                padding: 0;
-                                text-align: center;
-                            }
-                            
-                            .company-info p {
-                                color: #666;
-                                font-size: 11px;
-                                margin: 2px 0 0 0;
-                                padding: 0;
-                                text-align: center;
-                            }
-                            
-                            /* العنوان في صف واحد */
-                            .order-title-row {
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                background: linear-gradient(135deg, #FF6E00, #80EF80);
-                                color: Black;
-                                padding: 6px 10px;
-                                border-radius: 4px;
-                                margin-bottom: 8px;
-                                width: 100%;
-                                font-size: 18px !important;
-                                font-weight: bold;
-                            }
-                            
-                            .order-main-title {
-                                font-size: 16px;
-                                text-align: center;
-                                flex-grow: 1;
-                                margin: 6px;
-                                padding: 0;
-                            }
-                            
-                            .order-date {
-                                font-size: 14px;
-                                min-width: 110px;
-                                text-align: left;
-                                margin: 6px;
-                                padding: 0;
-                            }
-                            
-                            /* إجماليات الملخص */
-                            .summary-row {
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                margin: 8px 0;
-                                padding: 6px 10px;
-                                background-color: #f0f0f0;
-                                border-radius: 4px;
-                                font-weight: bold;
-                                font-size: 22px;
-                                border: 1px solid #ddd;
-                                width: 100%;
-                            }
-                            
-                            .summary-item {
-                                margin: 0 8px;
-                                display: flex;
-                                align-items: center;
-                            }
-                            
-                            .summary-label {
-                                margin-left: 9px;
-                                color: #666;
-                            }
-                            
-                            .summary-value {
-                                font-size: 22px !important;
-                                color: #FF6E00;
-                                font-weight: bold;
-                            }
-                            
-                            /* الجدول */
-                            table {
-                                width: 100%;
-                                border-collapse: collapse;
-                                font-size: 9px; /* تصغير حجم الخط */
-                                table-layout: fixed;
-                                margin: 0 auto; /* توسيط الجدول */
-                            }
-                            
-                            table th {
-                                background-color: #2196F3;
-                                color: Black;
-                                padding: 2px 2px; /* تقليل الحشوة */
-                                text-align: right;
-                                font-weight: bold;
-                                height: 18px !important; /* تقليل ارتفاع الصف بنسبة 25% */
-                                border: 1px solid #ddd;
-                                font-size: 9px; /* تصغير حجم الخط */
-                            }
-                            
-                            table td {
-                                padding: 2px 2px; /* تقليل الحشوة */
-                                text-align: right;
-                                height: 14px !important; /* تقليل ارتفاع الصف بنسبة 25% */
-                                border: 1px solid #ddd;
-                                vertical-align: middle;
-                                font-size: 9px; /* تصغير حجم الخط */
-                            }
-                            
-                            /* ألوان متناوبة */
-                            table tr:nth-child(even) {
-                                background-color: #daf3ff !important;
-                            }
-                            
-                            table tr:nth-child(odd) {
-                                background-color: white !important;
-                            }
-                            
-                            /* أبعاد الأعمدة */
-                            th:nth-child(1), td:nth-child(1) { /* كود الصنف */
-                                width: 10%;
-                                max-width: 60px;
-                                font-size: 8px;
-                            }
-                            
-                            th:nth-child(2), td:nth-child(2) { /* اسم الصنف */
-                                width: 40%;
-                                min-width: 150px;
-                            }
-                            
-                            th:nth-child(3), td:nth-child(3) { /* الشد */
-                                width: 8%;
-                                font-size: 8px;
-                            }
-                            
-                            th:nth-child(4), td:nth-child(4) { /* الكمية الإجمالية */
-                                width: 12%;
-                                font-size: 10px;
-                                font-weight: bold;
-                            }
-                            
-                            th:nth-child(5), td:nth-child(5) { /* كمية الشامل الإجمالية */
-                                width: 12% !important; /* تصغير عرض العمود */
-                                font-size: 10px;
-                                font-weight: bold;
-                            }
-                            
-                            th:nth-child(6), td:nth-child(6) { /* عدد المطاعم */
-                                width: 8%;
-                                font-size: 8px;
-                            }
-                            
-                            /* صف الإجماليات - تم التعديل هنا: تكبير الأرقام */
-                            .totals-row {
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                margin-top: 10px;
-                                padding: 8px 15px;
-                                background-color: #f5f5f5;
-                                border-radius: 4px;
-                                font-weight: bold;
-                                border: 1px solid #ddd;
-                                width: 100%;
-                            }
-                            
-                            .total-item {
-                                margin: 0 15px !important;
-                                display: flex;
-                                align-items: center;
-                            }
-                            
-                            .total-label {
-                                margin-left: 5px;
-                                color: #666;
-                                font-size: 14px;
-                            }
-                            
-                            .total-value {
-                                color: #FF6E00;
-                                font-weight: bold;
-                                font-size: 20px !important; /* تكبير الأرقام في الصف الأخير */
-                            }
-                            
-                            /* إزالة الهوامش الزائدة */
-                            * {
-                                margin-top: 0 !important;
-                                margin-bottom: 0 !important;
-                            }
-                            
-                            h1, h2, h3, h4, h5, h6, p {
-                                margin: 0;
-                                padding: 0;
-                            }
-                        }
-                        
-                        @media screen {
-                            body {
-                                padding: 20px;
-                                background: #f5f5f5;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="print-container">
-                        <!-- ترويسة الشركة -->
-                        <div class="company-header">
-                            <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="شركة نايف للأغذية" class="company-logo">
-                            <div class="company-info">
-                                <h2>شركة نايف للأغذية</h2>
-                                <p>نظام إدارة طلبيات المطاعم</p>
-                            </div>
-                        </div>
-                        
-                        <!-- العنوان في صف واحد -->
-                        <div class="order-title-row">
-                            <div class="order-main-title">
-                                إجماليات الأصناف المطلوبة - ${categoryName}
-                            </div>
-                            <div class="order-date">
-                                ${englishDateStr}
-                            </div>
-                        </div>
-                        
-                        <!-- ملخص الإجماليات -->
-                        <div class="summary-row">
-                            <div class="summary-item">
-                                <span class="summary-label">عدد الأصناف:</span>
-                                <span class="summary-value">${totalItems}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">إجمالي الكمية:</span>
-                                <span class="summary-value">${formatNumberWithoutDecimals(totalQuantitySum)}</span>
-                            </div>
-                            <div class="summary-item">
-                                <span class="summary-label">إجمالي الشامل:</span>
-                                <span class="summary-value">${formatNumberWithoutDecimals(totalPackSum)}</span>
-                            </div>
-                        </div>
-                        
-                        <!-- الجدول -->
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>كود الصنف</th>
-                                    <th>اسم الصنف</th>
-                                    <th>الشد</th>
-                                    <th>الكمية الإجمالية</th>
-                                    <th>كمية الشامل الإجمالية</th>
-                                    <th>عدد المطاعم</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-            `);
-            
-            // إضافة الصفوف - تم تغيير الترتيب
-            aggregatedArray.forEach((item, index) => {
-                const rowColor = index % 2 === 0 ? 'style="background-color: #daf3ff;"' : '';
-                printWindow.document.write(`
-                    <tr ${rowColor}>
-                        <td>${item.code}</td>
-                        <td>${item.name}</td>
-                        <td>${item.uom}</td>
-                        <td>${formatNumberWithoutDecimals(item.totalQuantity)}</td>
-                        <td>${formatNumberWithoutDecimals(item.totalPack)}</td>
-                        <td>${item.restaurantCount.size}</td>
-                    </tr>
-                `);
-            });
-            
-            printWindow.document.write(`
-                            </tbody>
-                        </table>
-                        
-                        <!-- صف الإجماليات مع تكبير الأرقام -->
-                        <div class="totals-row" style="justify-content: center; gap: 30px;">
-                            <div class="total-item">
-                                <span class="total-label">عدد الأصناف:</span>
-                                <span class="total-value">${totalItems}</span>
-                            </div>
-                            <div class="total-item">
-                                <span class="total-label">إجمالي الكمية:</span>
-                                <span class="total-value">${formatNumberWithoutDecimals(totalQuantitySum)}</span>
-                            </div>
-                            <div class="total-item">
-                                <span class="total-label">إجمالي الشامل:</span>
-                                <span class="total-value">${formatNumberWithoutDecimals(totalPackSum)}</span>
-                            </div>
-                            <div class="total-item">
-                                <span class="total-label">عدد المطاعم:</span>
-                                <span class="total-value">${new Set(filteredOrders.map(o => o.restaurantId)).size}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <script>
-                        window.onload = function() {
-                            // إضافة توقيت بسيط قبل الطباعة لضمان تحميل الصورة
-                            setTimeout(function() {
-                                window.print();
-                                setTimeout(function() {
-                                    window.close();
-                                }, 500);
-                            }, 300);
-                        };
-                        
-                        // إذا فشل تحميل الصورة، استمر في الطباعة
-                        window.onerror = function() {
-                            setTimeout(function() {
-                                window.print();
-                                setTimeout(function() {
-                                    window.close();
-                                }, 500);
-                            }, 1000);
-                        };
-                    <\/script>
-                </body>
-                </html>
-            `);
-            
-            printWindow.document.close();
+            aggregatedData[key] = {
+                code: order.productCode, // الحفاظ على الصيغة الأصلية للعرض
+                name: product.name,
+                uom: order.uom,
+                totalQuantity: 0,
+                totalPack: 0,
+                restaurantCount: new Set()
+            };
         }
         
-        // تصدير إجماليات الأصناف إلى Excel
+        aggregatedData[key].totalQuantity += order.quantity;
+        aggregatedData[key].totalPack += order.totalPack;
+        aggregatedData[key].restaurantCount.add(order.restaurantId);
+    });
+    
+    // تحويل الكائن إلى مصفوفة وترتيبها
+    const aggregatedArray = Object.values(aggregatedData);
+    aggregatedArray.sort((a, b) => a.code.toLowerCase().localeCompare(b.code.toLowerCase()));
+    
+    // حساب الإجماليات
+    let totalItems = aggregatedArray.length;
+    let totalQuantitySum = aggregatedArray.reduce((sum, item) => sum + item.totalQuantity, 0);
+    let totalPackSum = aggregatedArray.reduce((sum, item) => sum + item.totalPack, 0);
+    
+    // تحديد اسم التصنيف
+    let categoryName = '';
+    switch(category) {
+        case 'meat': categoryName = 'اللحوم'; break;
+        case 'appetizers': categoryName = 'المقبلات'; break;
+        case 'vegetables': categoryName = 'الخضار'; break;
+        default: categoryName = 'الكل'; break;
+    }
+    
+    // التاريخ بالأرقام الإنجليزية
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('ar-EG', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    
+    const arabicToEnglishNumbers = {
+        '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+        '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+    };
+    
+    let englishDateStr = dateStr;
+    for (let arabic in arabicToEnglishNumbers) {
+        englishDateStr = englishDateStr.replace(new RegExp(arabic, 'g'), arabicToEnglishNumbers[arabic]);
+    }
+    
+    // إنشاء نافذة طباعة
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>إجماليات الأصناف - ${categoryName}</title>
+            <style>
+                @media print {
+                    @page {
+                        margin: 1mm !important;
+                    }
+                    
+                    body {
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        color: #000000 !important; /* أسود غامق */
+                        line-height: 1.2;
+                        padding: 2mm;
+                        margin: 0;
+                        width: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center; /* محاذاة كل شيء في المنتصف */
+                    }
+                    
+                    .print-container {
+                        width: 95%;
+                        max-width: 95%;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center; /* محاذاة المحتوى في المنتصف */
+                    }
+                    
+                    /* ترويسة الشركة */
+                    .company-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-bottom: 5mm;
+                        padding-bottom: 2mm;
+                        border-bottom: 1px solid #FF6E00;
+                        gap: 15px;
+                        width: 100%;
+                    }
+                    
+                    .company-logo {
+                        height: 45px;
+                        width: auto;
+                    }
+                    
+                    .company-info h2 {
+                        color: #FF6E00;
+                        font-size: 18px !important; /* تكبير الخط */
+                        font-weight: bold !important; /* جعله bold */
+                        margin: 0;
+                        padding: 0;
+                        text-align: center;
+                    }
+                    
+                    .company-info p {
+                        color: #666;
+                        font-size: 13px !important; /* تكبير الخط */
+                        font-weight: bold !important; /* جعله bold */
+                        margin: 2px 0 0 0;
+                        padding: 0;
+                        text-align: center;
+                    }
+                    
+                    /* العنوان في صف واحد */
+                    .order-title-row {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        background: linear-gradient(135deg, #FF6E00, #80EF80);
+                        color: #000000 !important; /* أسود غامق */
+                        padding: 6px 10px;
+                        border-radius: 4px;
+                        margin-bottom: 8px;
+                        width: 100%;
+                        font-size: 20px !important; /* تكبير الخط */
+                        font-weight: bold !important; /* جعله bold */
+                    }
+                    
+                    .order-main-title {
+                        font-size: 18px !important; /* تكبير الخط */
+                        font-weight: bold !important; /* جعله bold */
+                        text-align: center;
+                        flex-grow: 1;
+                        margin: 6px;
+                        padding: 0;
+                    }
+                    
+                    .order-date {
+                        font-size: 16px !important; /* تكبير الخط */
+                        font-weight: bold !important; /* جعله bold */
+                        min-width: 110px;
+                        text-align: left;
+                        margin: 6px;
+                        padding: 0;
+                    }
+                    
+                    /* إجماليات الملخص */
+                    .summary-row {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin: 8px 0;
+                        padding: 6px 10px;
+                        background-color: #f0f0f0;
+                        border-radius: 4px;
+                        font-weight: bold;
+                        font-size: 24px !important; /* تكبير الخط */
+                        border: 1px solid #ddd;
+                        width: 100%;
+                    }
+                    
+                    .summary-item {
+                        margin: 0 8px;
+                        display: flex;
+                        align-items: center;
+                    }
+                    
+                    .summary-label {
+                        margin-left: 9px;
+                        color: #666;
+                        font-size: 14px !important; /* تكبير الخط */
+                        font-weight: bold !important; /* جعله bold */
+                    }
+                    
+                    .summary-value {
+                        font-size: 24px !important; /* تكبير الخط */
+                        color: #FF6E00;
+                        font-weight: bold !important; /* جعله bold */
+                    }
+                    
+                    /* الجدول - تم تغيير ترتيب الأعمدة: من اليسار لليمين */
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        font-size: 12px !important; /* تكبير حجم الخط للضعف */
+                        font-weight: bold !important; /* جعله bold */
+                        table-layout: fixed;
+                        margin: 0 auto; /* توسيط الجدول */
+                        color: #000000 !important; /* أسود غامق */
+                    }
+                    
+                    table th {
+                        background-color: #2196F3;
+                        color: #000000 !important; /* أسود غامق */
+                        padding: 4px 3px; /* زيادة الحشوة */
+                        text-align: right;
+                        font-weight: bold !important;
+                        height: 2px !important; /* زيادة ارتفاع الصف */
+                        border: 1px solid #ddd;
+                        font-size: 5px !important; /* تكبير حجم الخط للعنوان */
+                    }
+                    
+                    table td {
+                        padding: 4px 3px; /* زيادة الحشوة */
+                        text-align: right;
+                        height: 2px !important; /* زيادة ارتفاع الصف */
+                        border: 1px solid #ddd;
+                        vertical-align: top;
+                        font-size: 12px !important; /* تكبير حجم الخط للضعف */
+                        font-weight: bold !important; /* جعله bold */
+                        color: #000000 !important; /* أسود غامق */
+                    }
+                    
+                    /* ألوان متناوبة */
+                    table tr:nth-child(even) {
+                        background-color: #daf3ff !important;
+                    }
+                    
+                    table tr:nth-child(odd) {
+                        background-color: white !important;
+                    }
+                    
+                    /* أبعاد الأعمدة - ترتيب جديد: من اليسار لليمين */
+                    th:nth-child(1), td:nth-child(1) { /* عدد المطاعم */
+                        width: 5% !important;
+                        font-size: 9px !important;
+                    }
+                    
+                    th:nth-child(2), td:nth-child(2) { /* كمية الشامل الإجمالية */
+                        width: 8% !important;
+                        font-size: 11px !important;
+                        font-weight: bold !important;
+                    }
+                    
+                    th:nth-child(3), td:nth-child(3) { /* الكمية الإجمالية */
+                        width: 8% !important;
+                        font-size: 11px !important;
+                        font-weight: bold !important;
+                    }
+                    
+                    th:nth-child(4), td:nth-child(4) { /* الشد */
+                        width: 12% !important;
+                        font-size: 9px !important;
+                    }
+                    
+                    th:nth-child(5), td:nth-child(5) { /* اسم الصنف */
+                        width: 60% !important;
+                        min-width: 180px;
+                        font-size: 11px !important;
+	   text-align: left !important;
+direction: ltr !important; /* هذا يعكس اتجاه النص */
+    //unicode-bidi: bidi-override !important; /* يجبر على العرض من اليسار */
+                    }
+                    
+                    th:nth-child(6), td:nth-child(6) { /* كود الصنف */
+                        width: 6% !important;
+                        max-width: 80px;
+                        font-size: 10px !important;
+                    }
+                    
+                    /* صف الإجماليات - تم التعديل هنا: تكبير الأرقام */
+                    .totals-row {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-top: 10px;
+                        padding: 8px 15px;
+                        background-color: #f5f5f5;
+                        border-radius: 4px;
+                        font-weight: bold;
+                        border: 1px solid #ddd;
+                        width: 100%;
+                    }
+                    
+                    .total-item {
+                        margin: 0 15px !important;
+                        display: flex;
+                        align-items: center;
+                    }
+                    
+                    .total-label {
+                        margin-left: 5px;
+                        color: #666;
+                        font-size: 12px !important; /* تكبير الخط */
+                        font-weight: bold !important; /* جعله bold */
+                    }
+                    
+                    .total-value {
+                        color: #FF6E00;
+                        font-weight: bold !important; /* جعله bold */
+                        font-size: 18px !important; /* تكبير الأرقام في الصف الأخير */
+                    }
+                    
+                    /* إزالة الهوامش الزائدة */
+                    * {
+                        margin-top: 0 !important;
+                        margin-bottom: 0 !important;
+                    }
+                    
+                    h1, h2, h3, h4, h5, h6, p {
+                        margin: 0;
+                        padding: 0;
+                    }
+                }
+                
+                @media screen {
+                    body {
+                        padding: 20px;
+                        background: #f5f5f5;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-container">
+                <!-- ترويسة الشركة -->
+                <div class="company-header">
+                    <img src="https://i.postimg.cc/NM2zJWZD/NAIF-LOGO.jpg" alt="شركة نايف للأغذية" class="company-logo">
+                    <div class="company-info">
+                        <h2>شركة نايف للأغذية</h2>
+                        <p>نظام إدارة طلبيات المطاعم</p>
+                    </div>
+                </div>
+                
+                <!-- العنوان في صف واحد -->
+                <div class="order-title-row">
+                    <div class="order-main-title">
+                        إجماليات الأصناف المطلوبة - ${categoryName}
+                    </div>
+                    <div class="order-date">
+                        ${englishDateStr}
+                    </div>
+                </div>
+                
+                
+                
+                <!-- الجدول - ترتيب جديد: من اليسار لليمين -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>عدد المطاعم</th>
+                            <th>كمية الشامل الإجمالية</th>
+                            <th>الكمية الإجمالية</th>
+                            <th>الشد</th>
+                            <th>اسم الصنف</th>
+                            <th>كود الصنف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `);
+    
+    // إضافة الصفوف - ترتيب جديد
+    aggregatedArray.forEach((item, index) => {
+        const rowColor = index % 2 === 0 ? 'style="background-color: #daf3ff;"' : '';
+        printWindow.document.write(`
+            <tr ${rowColor}>
+                <td>${item.restaurantCount.size}</td>
+                <td>${formatNumberWithoutDecimals(item.totalPack)}</td>
+                <td>${formatNumberWithoutDecimals(item.totalQuantity)}</td>
+                <td>${item.uom}</td>
+                <td>${item.name}</td>
+                <td>${item.code}</td>
+            </tr>
+        `);
+    });
+    
+    printWindow.document.write(`
+                    </tbody>
+                </table>
+                
+                <!-- صف الإجماليات مع تكبير الأرقام -->
+                <div class="totals-row" style="justify-content: center; gap: 30px;">
+                    <div class="total-item">
+                        <span class="total-label">عدد الأصناف:</span>
+                        <span class="total-value">${totalItems}</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="total-label">إجمالي الكمية:</span>
+                        <span class="total-value">${formatNumberWithoutDecimals(totalQuantitySum)}</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="total-label">إجمالي الشامل:</span>
+                        <span class="total-value">${formatNumberWithoutDecimals(totalPackSum)}</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="total-label">عدد المطاعم:</span>
+                        <span class="total-value">${new Set(filteredOrders.map(o => o.restaurantId)).size}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                window.onload = function() {
+                    setTimeout(function() {
+                        window.print();
+                        setTimeout(function() {
+                            window.close();
+                        }, 500);
+                    }, 300);
+                };
+                
+                window.onerror = function() {
+                    setTimeout(function() {
+                        window.print();
+                        setTimeout(function() {
+                            window.close();
+                        }, 500);
+                    }, 1000);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+}
+        
+        // تصدير إجماليات الأصناف إلى Excel **************************************************************************************************************
         function exportCategoryToExcel() {
             const category = window.currentCategory || 'all';
             
@@ -2829,7 +2830,7 @@ function getPackSizeByCode(code) {
                             
                             body {
                                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                                color: #333;
+                                color: #000000 !important; /* أسود غامق */
                                 line-height: 1.2;
                                 padding: 2mm;
                                 margin: 0;
@@ -2866,7 +2867,8 @@ function getPackSizeByCode(code) {
                             
                             .company-info h2 {
                                 color: #FF6E00;
-                                font-size: 16px;
+                                font-size: 18px !important; /* تكبير الخط */
+                                font-weight: bold !important; /* جعله bold */
                                 margin: 0;
                                 padding: 0;
                                 text-align: center;
@@ -2874,7 +2876,8 @@ function getPackSizeByCode(code) {
                             
                             .company-info p {
                                 color: #666;
-                                font-size: 11px;
+                                font-size: 13px !important; /* تكبير الخط */
+                                font-weight: bold !important; /* جعله bold */
                                 margin: 2px 0 0 0;
                                 padding: 0;
                                 text-align: center;
@@ -2886,17 +2889,18 @@ function getPackSizeByCode(code) {
                                 justify-content: space-between;
                                 align-items: center;
                                 background: ${category === 'meat' ? '#FF6E00' : category === 'appetizers' ? '#80EF80' : '#2196F3'};
-                                color: Black;
+                                color: #000000 !important; /* أسود غامق */
                                 padding: 6px 10px;
                                 border-radius: 4px;
                                 margin-bottom: 8px;
                                 width: 100%;
-                                font-weight: bold;
-                                font-size: 18px !important;
+                                font-weight: bold !important; /* جعله bold */
+                                font-size: 20px !important; /* تكبير الخط */
                             }
                             
                             .order-main-title {
-                                font-size: 16px;
+                                font-size: 18px !important; /* تكبير الخط */
+                                font-weight: bold !important; /* جعله bold */
                                 text-align: center;
                                 flex-grow: 1;
                                 margin: 0;
@@ -2904,7 +2908,8 @@ function getPackSizeByCode(code) {
                             }
                             
                             .order-date {
-                                font-size: 11px;
+                                font-size: 16px !important; /* تكبير الخط */
+                                font-weight: bold !important; /* جعله bold */
                                 min-width: 110px;
                                 text-align: left;
                                 margin: 0;
@@ -2915,29 +2920,33 @@ function getPackSizeByCode(code) {
                             table {
                                 width: 100%;
                                 border-collapse: collapse;
-                                font-size: 9px; /* تصغير حجم الخط */
+                                font-size: 12px !important; /* تكبير حجم الخط للضعف */
+                                font-weight: bold !important; /* جعله bold */
                                 table-layout: fixed;
                                 margin: 0 auto; /* توسيط الجدول */
+                                color: #000000 !important; /* أسود غامق */
                             }
                             
                             table th {
                                 background-color: ${category === 'meat' ? '#FF6E00' : category === 'appetizers' ? '#80EF80' : '#2196F3'};
-                                color: white;
-                                padding: 3px 2px; /* تقليل الحشوة */
+                                color: #000000 !important; /* أسود غامق */
+                                padding: 4px 3px; /* زيادة الحشوة */
                                 text-align: right;
-                                font-weight: bold;
-                                height: 18px !important; /* تقليل ارتفاع الصف بنسبة 25% */
+                                font-weight: bold !important;
+                                height: 8px !important; /* زيادة ارتفاع الصف */
                                 border: 1px solid #ddd;
-                                font-size: 9px; /* تصغير حجم الخط */
+                                font-size: 10px !important; /* تكبير حجم الخط للعنوان */
                             }
                             
                             table td {
-                                padding: 2px 2px; /* تقليل الحشوة */
+                                padding: 4px 3px; /* زيادة الحشوة */
                                 text-align: right;
-                                height: 14px !important; /* تقليل ارتفاع الصف بنسبة 25% */
+                                height: 5px !important; /* زيادة ارتفاع الصف */
                                 border: 1px solid #ddd;
-                                vertical-align: middle;
-                                font-size: 9px; /* تصغير حجم الخط */
+                                vertical-align: top;
+                                font-size: 12px !important; /* تكبير حجم الخط للضعف */
+                                font-weight: bold !important; /* جعله bold */
+                                color: #000000 !important; /* أسود غامق */
                             }
                             
                             /* ألوان متناوبة - نفس ألوان العرض */
@@ -2949,39 +2958,42 @@ function getPackSizeByCode(code) {
                                 background-color: white !important;
                             }
                             
-                            /* أبعاد الأعمدة - تم تغيير الترتيب */
-                            th:nth-child(1), td:nth-child(1) { /* كود الصنف */
-                                width: 10%;
-                                max-width: 50px;
-                                font-size: 8px;
+                            /* أبعاد الأعمدة - تم تغيير الترتيب: من اليسار لليمين */
+                            th:nth-child(1), td:nth-child(1) { /* الملاحظات */
+                                width: 12% !important;
+                                font-size: 11px !important;
                             }
                             
-                            th:nth-child(2), td:nth-child(2) { /* اسم الصنف */
-                                width: 45%;
-                                min-width: 170px;
-                                font-size: 10px;
+                            th:nth-child(2), td:nth-child(2) { /* كمية الشامل */
+                                width: 8% !important;
+                                font-size: 13px !important;
+                                font-weight: bold !important;
                             }
                             
-                            th:nth-child(3), td:nth-child(3) { /* الشد */
-                                width: 8%;
-                                font-size: 8px;
+                            th:nth-child(3), td:nth-child(3) { /* الكمية */
+                                width: 8% !important;
+                                font-size: 13px !important;
+                                font-weight: bold !important;
                             }
                             
-                            th:nth-child(4), td:nth-child(4) { /* الكمية */
-                                width: 10%;
-                                font-size: 10px;
-                                font-weight: bold;
+                            th:nth-child(4), td:nth-child(4) { /* الشد */
+                                width: 10% !important;
+                                font-size: 8px !important;
                             }
                             
-                            th:nth-child(5), td:nth-child(5) { /* كمية الشامل */
-                                width: 12% !important; /* تصغير عرض العمود */
-                                font-size: 10px;
-                                font-weight: bold;
+                            th:nth-child(5), td:nth-child(5) { /* اسم الصنف */
+                                width: 60% !important;
+                                min-width: 180px;
+                                font-size: 13px !important;
+	          text-align: left !important;
+direction: ltr !important; /* هذا يعكس اتجاه النص */
+    //unicode-bidi: bidi-override !important; /* يجبر على العرض من اليسار */
                             }
                             
-                            th:nth-child(6), td:nth-child(6) { /* الملاحظات */
-                                width: 15%;
-                                font-size: 8px;
+                            th:nth-child(6), td:nth-child(6) { /* كود الصنف */
+                                width: 6% !important;
+                                max-width: 80px;
+                                font-size: 10px !important;
                             }
                             
                             /* صف الإجماليات */
@@ -2993,8 +3005,8 @@ function getPackSizeByCode(code) {
                                 padding: 6px 10px;
                                 background-color: #f0f0f0;
                                 border-radius: 4px;
-                                font-weight: bold;
-                                font-size: 14px; /* تصغير حجم الخط */
+                                font-weight: bold !important; /* جعله bold */
+                                font-size: 16px !important; /* تكبير حجم الخط */
                                 border: 1px solid #ddd;
                                 width: 100%;
                             }
@@ -3008,13 +3020,14 @@ function getPackSizeByCode(code) {
                             .total-label {
                                 margin-left: 5px;
                                 color: #666;
-                                font-size: 12px;
+                                font-size: 14px !important; /* تكبير الخط */
+                                font-weight: bold !important; /* جعله bold */
                             }
                             
                             .total-value {
-                                font-size: 14px !important; /* تصغير حجم الخط */
+                                font-size: 16px !important; /* تكبير حجم الخط */
                                 color: #FF6E00;
-                                font-weight: bold;
+                                font-weight: bold !important; /* جعله bold */
                             }
                             
                             /* إزالة الهوامش الزائدة */
@@ -3058,16 +3071,16 @@ function getPackSizeByCode(code) {
                             </div>
                         </div>
                         
-                        <!-- الجدول - تم تغيير ترتيب الأعمدة -->
+                        <!-- الجدول - تم تغيير ترتيب الأعمدة: من اليسار لليمين -->
                         <table>
                             <thead>
                                 <tr>
-                                    <th>كود الصنف</th>
-                                    <th>اسم الصنف</th>
-                                    <th>الشد</th>
-                                    <th>الكمية</th>
-                                    <th>كمية الشامل</th>
                                     <th>الملاحظات</th>
+                                    <th>كمية الشامل</th>
+                                    <th>الكمية</th>
+                                    <th>الشد</th>
+                                    <th>اسم الصنف</th>
+                                    <th>كود الصنف</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -3078,12 +3091,12 @@ function getPackSizeByCode(code) {
                 const rowColor = index % 2 === 0 ? 'style="background-color: #daf3ff;"' : '';
                 printWindow.document.write(`
                     <tr ${rowColor}>
-                        <td>${order.productCode}</td>
-                        <td>${order.productName}</td>
-                        <td>${order.uom}</td>
-                        <td>${order.quantity}</td>
-                        <td>${formatNumberWithoutDecimals(order.totalPack)}</td>
                         <td>-</td>
+                        <td>${formatNumberWithoutDecimals(order.totalPack)}</td>
+                        <td>${order.quantity}</td>
+                        <td>${order.uom}</td>
+                        <td>${order.productName}</td>
+                        <td>${order.productCode}</td>
                     </tr>
                 `);
             });
